@@ -300,14 +300,12 @@ tr:last-child td{border-bottom:none;}
           <div class="field-error" id="err-bezeichnung">Pflichtfeld – bitte ausfüllen</div>
         </div>
         <div class="field">
-          <label>Hersteller<span class="required-star">*</span></label>
-          <input type="text" id="f-hersteller" placeholder="z. B. FLIR" oninput="clearError('hersteller')" />
-          <div class="field-error" id="err-hersteller">Pflichtfeld – bitte ausfüllen</div>
+          <label>Hersteller</label>
+          <input type="text" id="f-hersteller" placeholder="z. B. FLIR" />
         </div>
         <div class="field">
-          <label>Modell / Typ<span class="required-star">*</span></label>
-          <input type="text" id="f-modell" placeholder="z. B. K33" oninput="clearError('modell')" />
-          <div class="field-error" id="err-modell">Pflichtfeld – bitte ausfüllen</div>
+          <label>Modell / Typ</label>
+          <input type="text" id="f-modell" placeholder="z. B. K33" />
         </div>
       </div>
     </div>
@@ -2261,7 +2259,7 @@ function clearError(f) { document.getElementById('f-'+f).classList.remove('error
 
 function validateForm() {
   let ok = true;
-  ['einreicher-name','bezeichnung','hersteller','modell'].forEach(f => {
+  ['einreicher-name','bezeichnung'].forEach(f => {
     const el = document.getElementById('f-' + f);
     if (!el.value.trim()) { el.classList.add('error'); document.getElementById('err-' + f).classList.add('show'); ok = false; }
   });
@@ -2271,7 +2269,8 @@ function validateForm() {
 function getSelectedKategorien() { return [...document.querySelectorAll('#cat-grid input:checked')].map(i => i.value); }
 
 function resetForm() {
-  ['einreicher-name','bezeichnung','hersteller','modell'].forEach(f => { const el = document.getElementById('f-'+f); el.value = ''; el.classList.remove('error'); document.getElementById('err-'+f).classList.remove('show'); });
+  ['einreicher-name','bezeichnung'].forEach(f => { const el = document.getElementById('f-'+f); el.value = ''; el.classList.remove('error'); document.getElementById('err-'+f).classList.remove('show'); });
+  ['hersteller','modell'].forEach(f => { document.getElementById('f-'+f).value = ''; });
   ['f-einreicher-email','f-einreicher-tel'].forEach(id => { document.getElementById(id).value = ''; });
   ['sachverhalt','risiken','kosten'].forEach(f => document.getElementById('f-'+f).value = '');
   document.querySelectorAll('#cat-grid input,#anlass-grid input').forEach(i => i.checked = false);
