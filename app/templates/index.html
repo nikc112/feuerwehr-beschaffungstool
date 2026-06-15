@@ -100,6 +100,9 @@ th{text-align:left;padding:9px 11px;font-size:12px;font-weight:600;color:var(--t
 td{padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:middle;word-break:break-word;}
 tr:hover td{background:var(--bg2);}
 tr:last-child td{border-bottom:none;}
+/* Investitionsliste: Spaltenbreite richtet sich nach dem Inhalt, keine Textumbrüche */
+#list-table{table-layout:auto;}
+#list-table th,#list-table td{white-space:nowrap;word-break:normal;}
 .prio-badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;}
 .prio-hoch{background:#fde8e6;color:#a32d2d;}
 .prio-mittel{background:#fef3e0;color:#854f0b;}
@@ -190,6 +193,8 @@ tr:last-child td{border-bottom:none;}
   .card-table tr.ek-detail-row{border:none;margin:0 0 10px;padding:0;background:transparent;}
   .card-table tr.ek-detail-row td{display:block;padding:0 !important;}
   #eingangskorb-table td[data-label=""]{flex-wrap:wrap;white-space:normal;justify-content:flex-start;gap:8px;}
+  /* In der Karten-Ansicht dürfen lange Texte wieder umbrechen */
+  #list-table th,#list-table td{white-space:normal;word-break:break-word;}
   #eingangskorb-table .btn-success,#eingangskorb-table .btn-danger{flex:1;justify-content:center;}
 }
 @media print{
@@ -445,17 +450,17 @@ tr:last-child td{border-bottom:none;}
     <select id="filter-vergabe" onchange="renderList()"><option value="">Alle Vergabearten</option><option>Direktauftrag</option><option>Beschränkte Ausschreibung</option><option>Öffentliche Ausschreibung</option><option>Europaweite Ausschreibung</option></select>
   </div>
   <div class="table-wrap" style="overflow-x:auto;">
-    <table class="card-table">
+    <table id="list-table" class="card-table">
       <thead><tr>
-        <th style="width:72px;">Nr.</th>
-        <th style="width:130px;">Bezeichnung</th>
-        <th style="width:115px;">Hersteller / Modell</th>
-        <th style="width:105px;">Kategorie</th>
-        <th style="width:88px;text-align:right;">Kosten</th>
-        <th style="width:68px;">Priorität</th>
-        <th style="width:170px;">Vergabeverfahren</th>
-        <th style="width:75px;">Ablauf</th>
-        <th style="width:90px;"></th>
+        <th>Nr.</th>
+        <th>Bezeichnung</th>
+        <th>Hersteller / Modell</th>
+        <th>Kategorie</th>
+        <th style="text-align:right;">Kosten</th>
+        <th>Priorität</th>
+        <th>Vergabeverfahren</th>
+        <th>Ablauf</th>
+        <th></th>
       </tr></thead>
       <tbody id="list-body"></tbody>
     </table>
