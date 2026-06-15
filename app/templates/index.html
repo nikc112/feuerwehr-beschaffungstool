@@ -443,6 +443,7 @@ tr:last-child td{border-bottom:none;}
     <select id="filter-prio" onchange="renderList()"><option value="">Alle Prioritäten</option><option>Hoch</option><option>Mittel</option><option>Niedrig</option></select>
     <select id="filter-kat" onchange="renderList()"><option value="">Alle Kategorien</option><option>Fahrzeug</option><option>PSA</option><option>Ausrüstung/Technik</option><option>Atemschutz</option><option>Digitalfunk</option><option>IT/Software</option><option>Sonstiges</option></select>
     <select id="filter-vergabe" onchange="renderList()"><option value="">Alle Vergabearten</option><option>Direktauftrag</option><option>Beschränkte Ausschreibung</option><option>Öffentliche Ausschreibung</option><option>Europaweite Ausschreibung</option></select>
+    <select id="filter-zeitpunkt" onchange="renderList()"><option value="">Alle Zeitpunkte</option></select>
   </div>
   <div class="table-wrap" style="overflow-x:auto;">
     <table id="list-table" class="card-table">
@@ -453,6 +454,7 @@ tr:last-child td{border-bottom:none;}
         <th>Kategorie</th>
         <th style="text-align:right;">Kosten</th>
         <th>Priorität</th>
+        <th>Geplant</th>
         <th>Vergabeverfahren</th>
         <th>Ablauf</th>
         <th></th>
@@ -747,6 +749,14 @@ tr:last-child td{border-bottom:none;}
       <!-- Interne Bearbeitung -->
       <div style="border:2px solid var(--ff-blue);border-radius:var(--radius);padding:16px;">
         <span class="section-label" style="margin-bottom:14px;display:inline-block;">Interne Bearbeitung (Beschaffer)</span>
+        <!-- Geplanter Beschaffungszeitpunkt -->
+        <div class="form-row cols2" style="margin-bottom:12px;" id="dm-geplant-row">
+          <div class="field">
+            <label>Geplanter Zeitpunkt (Jahr)</label>
+            <input type="number" id="dm-geplant" min="2024" max="2099" step="1" placeholder="z. B. 2028" />
+          </div>
+          <div class="field"></div>
+        </div>
         <!-- Stückzahl + Gesamtpreis -->
         <div class="form-row cols2" style="margin-bottom:12px;" id="dm-menge-row">
           <div class="field">
@@ -1903,12 +1913,14 @@ function openDetailModal(proposal) {
   // Populate Stückzahl fields
   document.getElementById('dm-menge').value = proposal.menge || 1;
   document.getElementById('dm-stueckpreis').value = proposal.stueckpreis_geschaetzt || '';
+  document.getElementById('dm-geplant').value = proposal.geplanter_zeitpunkt || '';
   updateGesamtpreis();
 
   // Show/hide beschaffer-only elements
   const isBes = isBeschaffer();
   document.getElementById('dm-add-alt-btn').style.display = isBes ? '' : 'none';
   document.getElementById('dm-add-quote-btn').style.display = isBes ? '' : 'none';
+  document.getElementById('dm-geplant-row').style.display = isBes ? '' : 'none';
 
   // Load alternatives and quotes asynchronously
   loadAlternatives(proposal.nr).then(alts => {
@@ -2175,6 +2187,7 @@ async function saveDetail() {
     notizen: document.getElementById('dm-notizen').value,
     menge: parseInt(document.getElementById('dm-menge').value) || 1,
     stueckpreis_geschaetzt: parseFloat(document.getElementById('dm-stueckpreis').value) || null,
+    geplanter_zeitpunkt: document.getElementById('dm-geplant').value.trim(),
   };
   try {
     const r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr), {
@@ -2314,17 +2327,36 @@ function dropFiles(e) { e.preventDefault(); dragLeave(); handleFiles(e.dataTrans
 function prioClass(p) { return p==='Hoch'?'prio-hoch':p==='Mittel'?'prio-mittel':'prio-niedrig'; }
 function ablaufDots(a) { return ABLAUF_ORDER.map(s => '<span class="ablauf-dot '+(Array.isArray(a)&&a.includes(s)?'done':'')+'" title="'+s+'"></span>').join(''); }
 
+function populateZeitpunktFilter() {
+  const sel = document.getElementById('filter-zeitpunkt');
+  if (!sel) return;
+  const prev = sel.value;
+  const years = [...new Set(proposals.map(d => (d.geplanter_zeitpunkt||'').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
+  const hasNone = proposals.some(d => !(d.geplanter_zeitpunkt||'').trim());
+  let opts = '<option value="">Alle Zeitpunkte</option>';
+  opts += years.map(y => '<option value="' + esc(y) + '">' + esc(y) + '</option>').join('');
+  if (hasNone) opts += '<option value="__none__">Ohne Zeitpunkt</option>';
+  sel.innerHTML = opts;
+  // vorherige Auswahl beibehalten, falls noch vorhanden
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
 function renderList() {
+  populateZeitpunktFilter();
   const txt = (document.getElementById('filter-text').value||'').toLowerCase();
   const prio = document.getElementById('filter-prio').value;
   const kat = document.getElementById('filter-kat').value;
   const verg = document.getElementById('filter-vergabe').value;
+  const zeit = document.getElementById('filter-zeitpunkt').value;
   const filtered = proposals.filter(d => {
     const v = getVergabe(d.kosten);
+    const gz = (d.geplanter_zeitpunkt||'').trim();
     return (!txt || (d.bezeichnung+' '+d.hersteller+' '+d.modell+' '+d.nr).toLowerCase().includes(txt))
       && (!prio || d.prioritaet === prio)
       && (!kat || (d.kategorie||'').includes(kat))
-      && (!verg || v.label === verg);
+      && (!verg || v.label === verg)
+      && (!zeit || (zeit === '__none__' ? !gz : gz === zeit));
   });
   const total = filtered.reduce((s,d) => s + (d.kosten||0), 0);
   document.getElementById('summary-bar').innerHTML =
@@ -2348,6 +2380,7 @@ function renderList() {
         +'<td data-label="Kategorie" style="font-size:12px;">'+d.kategorie+'</td>'
         +'<td data-label="Kosten" style="text-align:right;">'+(d.kosten||0).toLocaleString('de-DE')+' €</td>'
         +'<td data-label="Priorität"><span class="prio-badge '+prioClass(d.prioritaet)+'">'+d.prioritaet+'</span></td>'
+        +'<td data-label="Geplant" style="font-size:12px;">'+(d.geplanter_zeitpunkt ? esc(d.geplanter_zeitpunkt) : '<span style="color:var(--text2);">—</span>')+'</td>'
         +'<td data-label="Vergabeverfahren"><span class="vergabe-badge '+v.cls+'"><i class="ti '+v.icon+'" style="font-size:12px;"></i> '+v.label+'</span></td>'
         +'<td data-label="Ablauf"><div style="display:flex;gap:4px;">'+ablaufDots(d.ablauf)+'</div></td>'
         +'<td data-label="" style="white-space:nowrap;"><button class="btn-secondary" style="padding:4px 9px;font-size:12px;" onclick="openDetailModal(getProposalByNr(\''+d.nr+'\'))" title="Details / Bearbeiten"><i class="ti ti-eye"></i></button>'

@@ -69,6 +69,7 @@ class Proposal(db.Model):
     approved_at = db.Column(db.DateTime, nullable=True)
     menge = db.Column(db.Integer, default=1)
     stueckpreis_geschaetzt = db.Column(db.Float, nullable=True)
+    geplanter_zeitpunkt = db.Column(db.String(20))  # geplantes Beschaffungsjahr, z. B. "2028"
 
     attachments = db.relationship('Attachment', backref='proposal', lazy=True,
                                   cascade='all, delete-orphan')
@@ -105,6 +106,7 @@ class Proposal(db.Model):
             'approved_at': self.approved_at.strftime('%d.%m.%Y %H:%M') if self.approved_at else None,
             'menge': self.menge or 1,
             'stueckpreis_geschaetzt': self.stueckpreis_geschaetzt,
+            'geplanter_zeitpunkt': self.geplanter_zeitpunkt or '',
         }
 
 

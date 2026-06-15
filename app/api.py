@@ -194,6 +194,9 @@ def update_proposal(nr):
             proposal.stueckpreis_geschaetzt = float(data['stueckpreis_geschaetzt'])
         except (ValueError, TypeError):
             pass
+    # Geplanter Beschaffungszeitpunkt – nur Beschaffer/Admin dürfen ihn setzen
+    if 'geplanter_zeitpunkt' in data and current_user.role in ('beschaffer', 'admin'):
+        proposal.geplanter_zeitpunkt = (data['geplanter_zeitpunkt'] or '').strip()
     db.session.commit()
     return jsonify(proposal.to_dict())
 
