@@ -9,7 +9,8 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
 from .models import (Proposal, Attachment, Supplier, User, Settings, Alternative, Quote,
-                     get_vergabe_tiers, _VERGABE_KEYS)
+                     get_vergabe_tiers, _VERGABE_KEYS,
+                     DEFAULT_FORM_HEADING, DEFAULT_FORM_INTRO)
 from . import db
 from .email_service import send_email
 from .notifications import notify_new_proposal
@@ -557,13 +558,14 @@ def update_user(uid):
 _SMTP_KEYS = ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from', 'smtp_tls')
 _TEMPLATE_KEYS = ('email_subject', 'email_body')
 _IMAP_KEYS = ('imap_host', 'imap_port', 'imap_user', 'imap_password', 'imap_folder', 'imap_ssl', 'imap_enabled', 'imap_interval')
+_FORM_KEYS = ('form_heading', 'form_intro')
 
 
 @api_bp.route('/settings', methods=['GET'])
 @admin_required
 def get_settings():
     result = {}
-    for key in _SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS:
+    for key in _SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS:
         val = Settings.get(key)
         if key in ('smtp_password', 'imap_password'):
             result[key] = _MASK if val else ''
@@ -571,6 +573,8 @@ def get_settings():
             result[key] = val
     result['_default_subject'] = DEFAULT_EMAIL_SUBJECT
     result['_default_body'] = DEFAULT_EMAIL_BODY
+    result['_default_form_heading'] = DEFAULT_FORM_HEADING
+    result['_default_form_intro'] = DEFAULT_FORM_INTRO
     result['vergabe_tiers'] = get_vergabe_tiers()
     return jsonify(result)
 
@@ -619,7 +623,7 @@ def update_settings():
             } for t in tv]
             Settings.set('vergabe_tiers', json.dumps(cleaned, ensure_ascii=False))
 
-    allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS)
+    allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS)
     for key, value in data.items():
         if key not in allowed:
             continue

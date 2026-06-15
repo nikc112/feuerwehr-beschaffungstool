@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template
 
-from .models import get_vergabe_tiers
+from .models import get_vergabe_tiers, get_form_texts
 
 main_bp = Blueprint('main', __name__)
 
 
 @main_bp.route('/')
 def index():
-    return render_template('index.html', vergabe_tiers=get_vergabe_tiers())
+    return render_template('index.html',
+                           vergabe_tiers=get_vergabe_tiers(),
+                           form_texts=get_form_texts())

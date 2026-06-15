@@ -249,3 +249,20 @@ def get_vergabe_tiers():
         except (ValueError, TypeError):
             pass
     return copy.deepcopy(DEFAULT_VERGABE_TIERS)
+
+
+# ── Texte der Seite "Neuer Vorschlag" (konfigurierbar) ───────────────────────────
+
+DEFAULT_FORM_HEADING = 'Beschaffungsvorschlag einreichen'
+DEFAULT_FORM_INTRO = (
+    'Jeder kann hier einen Vorschlag einreichen. '
+    'Die Bearbeitung und Angebotseinholung erfolgt durch die Wehrführung.'
+)
+
+
+def get_form_texts():
+    """Überschrift und Einleitungstext der Vorschlags-Seite; bei leer die Defaults."""
+    return {
+        'heading': Settings.get('form_heading') or DEFAULT_FORM_HEADING,
+        'intro': Settings.get('form_intro') or DEFAULT_FORM_INTRO,
+    }

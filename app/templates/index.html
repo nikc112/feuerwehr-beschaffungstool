@@ -265,10 +265,7 @@ tr:last-child td{border-bottom:none;}
       <div class="header-sub">Beschaffungsmanagement</div>
     </div>
   </div>
-  <div id="hdr-info" style="text-align:right;">
-    <div style="font-size:11px;opacity:.7;">Wehrführer: Heiko Bolt</div>
-    <div style="font-size:11px;opacity:.7;">Stellv.: Olaf Semmelmann</div>
-  </div>
+  <div id="hdr-info" style="text-align:right;"></div>
   <div id="hdr-user" style="display:none;text-align:right;">
     <div style="font-size:12px;font-weight:500;opacity:.9;" id="hdr-username"></div>
     <button class="btn-outline-white" onclick="doLogout()" style="margin-top:5px;"><i class="ti ti-logout"></i> Abmelden</button>
@@ -289,8 +286,8 @@ tr:last-child td{border-bottom:none;}
 <!-- ══════════════════ VIEW: NEUER VORSCHLAG ══════════════════ -->
 <div class="content" id="view-form">
   <div style="margin-bottom:18px;">
-    <span style="font-size:20px;font-weight:600;color:var(--ff-blue);">Beschaffungsvorschlag einreichen</span>
-    <div style="font-size:13px;color:var(--text2);margin-top:4px;">Jeder kann hier einen Vorschlag einreichen. Die Bearbeitung und Angebotseinholung erfolgt durch die Wehrführung.</div>
+    <span id="form-heading" style="font-size:20px;font-weight:600;color:var(--ff-blue);">{{ form_texts.heading }}</span>
+    <div id="form-intro" style="font-size:13px;color:var(--text2);margin-top:4px;white-space:pre-line;">{{ form_texts.intro }}</div>
   </div>
 
   <div class="form-section">
@@ -563,6 +560,23 @@ tr:last-child td{border-bottom:none;}
 <!-- ══════════════════ VIEW: EINSTELLUNGEN ══════════════════ -->
 <div class="content" id="view-einstellungen" style="display:none;">
   <span style="font-size:18px;font-weight:600;color:var(--ff-blue);display:block;margin-bottom:20px;">Einstellungen</span>
+
+  <!-- FORMULAR-TEXTE (Neuer Vorschlag) -->
+  <div class="form-section" style="margin-bottom:24px;">
+    <span class="section-label">Texte „Neuer Vorschlag"</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;font-size:12px;border:1px solid var(--border);margin-bottom:14px;">
+        <i class="ti ti-info-circle" style="color:var(--ff-blue);"></i>
+        Überschrift und Einleitungstext, die oben auf der Seite „Neuer Vorschlag" angezeigt werden. Mehrzeiliger Einleitungstext ist möglich.
+      </div>
+      <div class="field" style="margin-bottom:12px;"><label>Überschrift</label><input type="text" id="st-form-heading" placeholder="Beschaffungsvorschlag einreichen" /></div>
+      <div class="field"><label>Einleitungstext</label><textarea id="st-form-intro" style="height:90px;resize:vertical;"></textarea></div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="resetFormTexts()"><i class="ti ti-refresh"></i> Auf Standard zurücksetzen</button>
+        <button class="btn-primary" onclick="saveFormTexts()"><i class="ti ti-device-floppy"></i> Texte speichern</button>
+      </div>
+    </div>
+  </div>
 
   <!-- SMTP -->
   <div class="form-section" style="margin-bottom:24px;">
@@ -1382,6 +1396,8 @@ async function loadSettingsTab() {
   document.getElementById('st-tls').checked = (d.smtp_tls || 'true') !== 'false';
   document.getElementById('st-subject').value = d.email_subject || d._default_subject || '';
   document.getElementById('st-body').value = d.email_body || d._default_body || '';
+  document.getElementById('st-form-heading').value = d.form_heading || d._default_form_heading || '';
+  document.getElementById('st-form-intro').value = d.form_intro || d._default_form_intro || '';
   _loadImapFields(d);
   if (Array.isArray(d.vergabe_tiers)) window.VERGABE_TIERS = d.vergabe_tiers;
   renderVergabeEditor(window.VERGABE_TIERS);
@@ -1500,6 +1516,47 @@ async function resetEmailTemplate() {
     showToast('Standard-Vorlage wiederhergestellt.');
     loadSettingsTab();
   }
+}
+
+function applyFormTexts(heading, intro) {
+  const h = document.getElementById('form-heading');
+  const i = document.getElementById('form-intro');
+  if (h) h.textContent = heading;
+  if (i) i.textContent = intro;
+}
+
+async function saveFormTexts() {
+  const payload = {
+    form_heading: document.getElementById('st-form-heading').value.trim(),
+    form_intro: document.getElementById('st-form-intro').value.trim(),
+  };
+  const r = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+  if (r.ok) {
+    applyFormTexts(payload.form_heading, payload.form_intro);
+    showToast('Texte gespeichert.');
+  } else showToast('Fehler beim Speichern.');
+}
+
+async function resetFormTexts() {
+  if (!await showConfirm('Texte auf Standard zurücksetzen? Eigene Änderungen gehen verloren.', {label: 'Zurücksetzen', title: 'Zurücksetzen'})) return;
+  const r = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({form_heading: '', form_intro: ''}),
+  });
+  if (!r.ok) { showToast('Fehler beim Zurücksetzen.'); return; }
+  const sr = await fetch('/api/settings');
+  if (sr.ok) {
+    const d = await sr.json();
+    document.getElementById('st-form-heading').value = d._default_form_heading || '';
+    document.getElementById('st-form-intro').value = d._default_form_intro || '';
+    applyFormTexts(d._default_form_heading || '', d._default_form_intro || '');
+  }
+  showToast('Standard-Texte wiederhergestellt.');
 }
 
 // ══════════════════ IMAP ══════════════════
