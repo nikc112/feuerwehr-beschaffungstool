@@ -1,0 +1,2354 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beschaffungsmanagement – FF Moorrege</title>
+<link rel="apple-touch-icon" href="/static/icon-180.png">
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#0785B7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FF Beschaffung">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+:root{--ff-blue:#0785B7;--ff-blue-light:#0a9fd6;--ff-red:#E95146;--bg:#ffffff;--bg2:#f5f7fa;--border:#e0e4ea;--border2:#cdd2db;--text:#1a2233;--text2:#5a6478;--radius:8px;--radius-lg:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#eef2f7;min-height:100vh;padding:20px;}
+.app-wrap{max-width:960px;margin:0 auto;background:var(--bg);border-radius:var(--radius-lg);box-shadow:0 4px 24px rgba(0,0,0,.10);overflow:hidden;}
+.header{background:var(--ff-blue);color:white;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+.header-left{display:flex;align-items:center;gap:14px;}
+.header-logo{width:46px;height:46px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;padding:3px;}
+.header-logo img{width:40px;height:40px;object-fit:contain;border-radius:50%;}
+.header-title{font-size:16px;font-weight:600;}
+.header-sub{font-size:12px;opacity:.8;margin-top:1px;}
+.red-bar{height:4px;background:var(--ff-red);}
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);}
+.tab{padding:12px 24px;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--text2);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;transition:all .15s;}
+.tab.active{color:var(--ff-blue);border-bottom-color:var(--ff-blue);font-weight:500;background:var(--bg);}
+.tab:hover:not(.active){background:var(--bg);color:var(--text);}
+.content{padding:24px;}
+.form-section{margin-bottom:20px;}
+.section-label{font-size:13px;font-weight:600;color:var(--ff-blue);margin-bottom:9px;padding-bottom:5px;border-bottom:2px solid var(--ff-red);display:inline-block;}
+.form-row{display:grid;gap:14px;}
+.form-row.cols2{grid-template-columns:1fr 1fr;}
+.form-row.cols3{grid-template-columns:1fr 1fr 1fr;}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500;}
+.field input,.field select,.field textarea{width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;background:var(--bg);color:var(--text);transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ff-blue);}
+.field input.error{border-color:var(--ff-red);}
+.field textarea{height:72px;resize:vertical;}
+.field-error{font-size:11px;color:var(--ff-red);margin-top:3px;display:none;}
+.field-error.show{display:block;}
+.required-star{color:var(--ff-red);margin-left:2px;}
+.checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 18px;margin-top:7px;}
+.checkbox-item{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text);cursor:pointer;}
+.checkbox-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--ff-blue);cursor:pointer;}
+.radio-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 18px;margin-top:7px;}
+.radio-item{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text);cursor:pointer;}
+.radio-item input[type=radio]{accent-color:var(--ff-blue);cursor:pointer;}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:18px;border-top:1px solid var(--border);margin-top:10px;flex-wrap:wrap;}
+.btn-primary{background:var(--ff-blue);color:white;border:none;padding:9px 22px;border-radius:var(--radius);font-size:14px;cursor:pointer;display:flex;align-items:center;gap:7px;font-weight:500;transition:background .15s;}
+.btn-primary:hover{background:var(--ff-blue-light);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-secondary{background:transparent;color:var(--text2);border:1px solid var(--border2);padding:9px 18px;border-radius:var(--radius);font-size:14px;cursor:pointer;transition:background .15s;}
+.btn-secondary:hover{background:var(--bg2);}
+.btn-angebot{background:white;color:var(--ff-blue);border:1.5px solid var(--ff-blue);padding:9px 18px;border-radius:var(--radius);font-size:14px;cursor:pointer;display:flex;align-items:center;gap:7px;font-weight:600;transition:all .15s;}
+.btn-angebot:hover{background:#e8f5fb;}
+.btn-angebot:disabled{opacity:.35;cursor:not-allowed;background:var(--bg2);border-color:var(--border2);color:var(--text2);}
+.btn-danger{background:transparent;color:var(--ff-red);border:1px solid var(--ff-red);padding:4px 9px;border-radius:var(--radius);font-size:12px;cursor:pointer;}
+.btn-danger:hover{background:#fff0ef;}
+.btn-outline-white{background:transparent;color:white;border:1px solid rgba(255,255,255,.55);padding:4px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:5px;}
+.btn-outline-white:hover{background:rgba(255,255,255,.18);}
+.nr-display{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 14px;font-size:14px;font-weight:600;color:var(--ff-blue);min-width:100px;text-align:center;}
+.produkt-box{background:var(--bg2);border-radius:var(--radius);padding:14px;border:1px solid var(--border);}
+.vergabe-info-box{border-radius:var(--radius);padding:11px 14px;font-size:12px;margin-top:9px;display:none;border-left:3px solid;}
+.vergabe-info-box.show{display:flex;align-items:flex-start;gap:10px;}
+.vi-direkt{background:#eaf3de;border-color:#3b6d11;color:#27500a;}
+.vi-beschraenkt{background:#e6f1fb;border-color:#185fa5;color:#0c447c;}
+.vi-oeffentlich{background:#fef3e0;border-color:#854f0b;color:#633806;}
+.vi-europa{background:#fde8e6;border-color:#a32d2d;color:#791f1f;}
+.vergabe-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.vergabe-title{font-weight:600;font-size:13px;margin-bottom:2px;}
+.rechtsbasis{font-size:10px;color:var(--text2);margin-top:6px;padding:5px 9px;background:var(--bg2);border-radius:var(--radius);}
+.angebot-disabled-hint{font-size:12px;color:#854f0b;background:#fef3e0;padding:9px 13px;border-radius:var(--radius);margin-top:9px;display:none;border-left:3px solid #854f0b;}
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;color:var(--text2);font-size:13px;margin-top:9px;transition:all .15s;}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--ff-blue);color:var(--ff-blue);background:rgba(7,133,183,.04);}
+.upload-zone .ti{font-size:30px;display:block;margin-bottom:7px;opacity:.45;}
+.file-list{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.file-item{display:flex;align-items:center;gap:9px;background:var(--bg2);border-radius:var(--radius);padding:7px 11px;font-size:12px;}
+.file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+.file-size{color:var(--text2);font-size:11px;flex-shrink:0;}
+.file-remove{background:none;border:none;cursor:pointer;color:var(--text2);padding:0 2px;font-size:15px;}
+.file-remove:hover{color:var(--ff-red);}
+/* LIST */
+.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.stat-card{background:var(--bg2);border-radius:var(--radius);padding:12px 16px;text-align:center;border:1px solid var(--border);}
+.stat-num{font-size:24px;font-weight:600;color:var(--ff-blue);}
+.stat-lbl{font-size:11px;color:var(--text2);margin-top:2px;}
+.schwelle-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center;}
+.sl-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.sl-dot{width:10px;height:10px;border-radius:99px;flex-shrink:0;}
+.filter-bar{display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-bar select,.filter-bar input{font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;background:var(--bg);}
+.filter-bar select{width:auto;}
+.filter-bar input{flex:1;min-width:160px;}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+th{text-align:left;padding:9px 11px;font-size:12px;font-weight:600;color:var(--text2);background:var(--bg2);border-bottom:1px solid var(--border);}
+td{padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:middle;word-break:break-word;}
+tr:hover td{background:var(--bg2);}
+tr:last-child td{border-bottom:none;}
+.prio-badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;}
+.prio-hoch{background:#fde8e6;color:#a32d2d;}
+.prio-mittel{background:#fef3e0;color:#854f0b;}
+.prio-niedrig{background:#eaf3de;color:#3b6d11;}
+.vergabe-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;}
+.vb-direkt{background:#eaf3de;color:#3b6d11;}
+.vb-beschraenkt{background:#e6f1fb;color:#185fa5;}
+.vb-oeffentlich{background:#fef3e0;color:#854f0b;}
+.vb-europa{background:#fde8e6;color:#a32d2d;}
+.ablauf-dot{width:11px;height:11px;border-radius:50%;background:var(--ff-blue);opacity:.18;display:inline-block;}
+.ablauf-dot.done{opacity:1;}
+.ablauf-chip{padding:4px 11px;border-radius:99px;font-size:12px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;user-select:none;transition:all .15s;}
+.ablauf-chip.active{background:var(--ff-blue);color:white;border-color:var(--ff-blue);}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text2);font-size:14px;}
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--bg);border-radius:var(--radius-lg);width:100%;max-width:500px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.22);}
+.modal-header{background:var(--ff-blue);color:white;padding:15px 20px;display:flex;align-items:center;justify-content:space-between;}
+.modal-header h3{font-size:15px;font-weight:600;}
+.modal-close{background:none;border:none;color:white;cursor:pointer;font-size:22px;line-height:1;opacity:.85;}
+.modal-close:hover{opacity:1;}
+.modal-body{padding:20px;max-height:65vh;overflow-y:auto;}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.angebot-hint{font-size:12px;color:var(--text2);background:var(--bg2);padding:9px 13px;border-radius:var(--radius);margin-bottom:15px;display:flex;gap:9px;align-items:flex-start;border:1px solid var(--border);}
+.lieferant-card{border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:11px;cursor:pointer;transition:all .15s;}
+.lieferant-card:hover{border-color:var(--ff-blue);background:rgba(7,133,183,.03);}
+.lieferant-card.selected{border-color:var(--ff-blue);background:rgba(7,133,183,.07);}
+.lieferant-card label{cursor:pointer;display:flex;align-items:flex-start;gap:11px;}
+.lieferant-card input[type=checkbox]{margin-top:2px;accent-color:var(--ff-blue);width:15px;height:15px;flex-shrink:0;}
+.lieferant-name{font-size:13px;font-weight:600;color:var(--text);}
+.lieferant-detail{font-size:11px;color:var(--text2);margin-top:3px;line-height:1.7;}
+.test-badge{display:inline-block;background:#fef3e0;color:#854f0b;border-radius:99px;font-size:10px;padding:1px 7px;margin-left:7px;font-weight:500;}
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--ff-blue);color:white;padding:10px 18px;border-radius:var(--radius);font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:2000;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(7,133,183,.35);}
+.toast.show{opacity:1;}
+/* SETUP & LOGIN */
+.setup-overlay{position:fixed;inset:0;background:#eef2f7;z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.setup-card{background:var(--bg);border-radius:var(--radius-lg);box-shadow:0 4px 32px rgba(0,0,0,.15);width:100%;max-width:440px;overflow:hidden;}
+.setup-header{background:var(--ff-blue);color:white;padding:18px 24px;}
+.setup-body{padding:28px 24px;}
+.login-error{color:var(--ff-red);font-size:12px;padding:8px 11px;background:#fff0ef;border-radius:var(--radius);border:1px solid rgba(233,81,70,.3);}
+.login-modal-body{padding:24px;}
+/* MANAGEMENT */
+.badge-admin{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:#fde8e6;color:#a32d2d;}
+.badge-beschaffer{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:#e8f5e9;color:#2e7d32;}
+.badge-user{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:#e6f1fb;color:#185fa5;}
+.mgmt-add{background:var(--bg2);border-radius:var(--radius);padding:16px;border:1px solid var(--border);}
+.mgmt-add-grid{display:grid;gap:10px;grid-template-columns:1fr 1fr;}
+@media(max-width:640px){
+  /* Layout-Grundlagen kompakter */
+  body{padding:8px;}
+  .content{padding:14px;}
+  .header{padding:10px 14px;flex-wrap:wrap;gap:8px;}
+  .header-sub{font-size:11px;}
+  /* Formular-Grids stapeln */
+  .form-row.cols3{grid-template-columns:1fr;}
+  .form-row.cols2{grid-template-columns:1fr;}
+  .summary-bar{grid-template-columns:1fr 1fr;}
+  .mgmt-add-grid{grid-template-columns:1fr;}
+  .checkbox-grid,.radio-grid{grid-template-columns:1fr;}
+  /* Tabs horizontal scrollbar statt überlaufend */
+  .tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
+  .tabs::-webkit-scrollbar{height:0;}
+  .tab{flex-shrink:0;padding:11px 14px;font-size:13px;min-height:40px;}
+  /* Touch-Flächen / Aktionsbuttons */
+  .btn-primary,.btn-secondary{min-height:40px;}
+  .btn-danger,.btn-outline-white{min-height:36px;padding:7px 12px;}
+  .form-actions,.modal-footer{justify-content:stretch;}
+  .form-actions>button,.modal-footer>button{flex:1;}
+  /* Modals auf Display-Breite zwingen (überschreibt Inline-max-width) */
+  .modal{max-width:96vw!important;}
+  .modal-overlay{padding:8px;}
+  .modal-body{max-height:74vh;}
+  #email-modal-frame{height:70vh;}
+  /* Tabellen als Karten */
+  .table-wrap{overflow:visible;}
+  .card-table,.quote-table{display:block;width:100%;}
+  .card-table tbody,.quote-table tbody{display:block;}
+  .card-table thead,.quote-table thead{display:none;}
+  .card-table tr,.quote-table tr{display:block;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;padding:6px 10px;background:var(--bg);}
+  .card-table td,.quote-table td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border:none;text-align:left!important;}
+  .card-table td::before,.quote-table td::before{content:attr(data-label);font-weight:600;color:var(--text2);font-size:11px;flex-shrink:0;}
+  .card-table td[data-label=""],.quote-table td[data-label=""]{justify-content:flex-end;}
+  .card-table td[data-label=""]::before,.quote-table td[data-label=""]::before{content:none;}
+  /* Eingangskorb: Detail-Grid stapeln, Detailzeile nicht als Karte, Aktionen umbrechen */
+  #view-eingangskorb .ek-detail-inner{grid-template-columns:1fr;padding:10px 14px;}
+  .card-table tr.ek-detail-row{border:none;margin:0 0 10px;padding:0;background:transparent;}
+  .card-table tr.ek-detail-row td{display:block;padding:0 !important;}
+  #eingangskorb-table td[data-label=""]{flex-wrap:wrap;white-space:normal;justify-content:flex-start;gap:8px;}
+  #eingangskorb-table .btn-success,#eingangskorb-table .btn-danger{flex:1;justify-content:center;}
+}
+@media print{
+  body>*:not(#print-content){display:none!important;}
+  #print-content{display:block!important;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a2233;}
+  .print-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  .print-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;}
+  .print-table td{padding:5px 8px;border-bottom:1px solid #e0e4ea;}
+  .print-table td:first-child{color:#5a6478;width:38%;font-weight:500;}
+  .print-section{margin-top:12px;}
+  .print-label{font-size:12px;font-weight:600;color:#5a6478;margin-bottom:4px;}
+  .print-text{font-size:13px;line-height:1.6;}
+}
+.badge-pending{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:#fef3e0;color:#854f0b;}
+.badge-rejected{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:#fde8e6;color:#a32d2d;}
+.ek-toggle-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:14px;padding:2px 4px;line-height:1;transition:transform .15s;}
+.ek-toggle-btn.open{transform:rotate(90deg);}
+.ek-detail-row td{padding:0 !important;border-bottom:1px solid var(--border);}
+.ek-detail-inner{padding:10px 14px 12px 36px;background:var(--bg2);font-size:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 20px;}
+.ek-detail-inner .ek-field label{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;display:block;margin-bottom:2px;}
+.ek-detail-inner .ek-field span{color:var(--text1);}
+.ek-sachverhalt{grid-column:1/-1;}
+.btn-success{background:transparent;color:#3b6d11;border:1px solid #3b6d11;padding:4px 9px;border-radius:var(--radius);font-size:12px;cursor:pointer;}
+.btn-success:hover{background:#eaf3de;}
+.quote-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
+.quote-table th{text-align:left;padding:5px 8px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border);}
+.quote-table td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.quote-table tr:last-child td{border-bottom:none;}
+.best-quote{background:#eaf3de;}
+.alt-tag{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10px;background:#e6f1fb;color:#185fa5;font-weight:500;margin-left:4px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ SETUP OVERLAY ══════════════════ -->
+<div class="setup-overlay" id="setup-overlay" style="display:none;">
+  <div class="setup-card">
+    <div class="setup-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="header-logo" style="width:42px;height:42px;"><img src="/static/logo.jpg" alt="FF Moorrege" style="width:36px;height:36px;" /></div>
+        <div>
+          <div style="font-size:15px;font-weight:600;">Erste Einrichtung</div>
+          <div style="font-size:12px;opacity:.8;">Beschaffungsmanagement FF Moorrege</div>
+        </div>
+      </div>
+    </div>
+    <div class="red-bar"></div>
+    <div class="setup-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:22px;">Willkommen! Legen Sie jetzt den ersten Administrator-Account an.</p>
+      <div class="field"><label>Benutzername<span class="required-star">*</span></label><input type="text" id="su-user" autocomplete="username" /></div>
+      <div class="field" style="margin-top:12px;"><label>E-Mail<span class="required-star">*</span></label><input type="email" id="su-email" autocomplete="email" placeholder="name@ff.de" /></div>
+      <div class="field" style="margin-top:12px;"><label>Passwort<span class="required-star">*</span> <span style="font-weight:400;">(min. 6 Zeichen)</span></label><input type="password" id="su-pass" autocomplete="new-password" /></div>
+      <div class="field" style="margin-top:12px;"><label>Passwort wiederholen<span class="required-star">*</span></label><input type="password" id="su-pass2" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSetup()" /></div>
+      <div class="login-error" id="su-error" style="display:none;margin-top:10px;"></div>
+      <button class="btn-primary" style="width:100%;justify-content:center;margin-top:20px;" onclick="doSetup()"><i class="ti ti-shield-check"></i> Admin-Account anlegen</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-wrap">
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo"><img src="/static/logo.jpg" alt="FF Moorrege Logo" /></div>
+    <div>
+      <div class="header-title">Freiwillige Feuerwehr Moorrege</div>
+      <div class="header-sub">Beschaffungsmanagement</div>
+    </div>
+  </div>
+  <div id="hdr-info" style="text-align:right;">
+    <div style="font-size:11px;opacity:.7;">Wehrführer: Heiko Bolt</div>
+    <div style="font-size:11px;opacity:.7;">Stellv.: Olaf Semmelmann</div>
+  </div>
+  <div id="hdr-user" style="display:none;text-align:right;">
+    <div style="font-size:12px;font-weight:500;opacity:.9;" id="hdr-username"></div>
+    <button class="btn-outline-white" onclick="doLogout()" style="margin-top:5px;"><i class="ti ti-logout"></i> Abmelden</button>
+  </div>
+</div>
+<div class="red-bar"></div>
+
+<!-- ══════════════════ TABS ══════════════════ -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('form')" id="tab-form"><i class="ti ti-forms"></i> Neuer Vorschlag</button>
+  <button class="tab" onclick="showTab('eingangskorb')" id="tab-eingangskorb" style="display:none;"><i class="ti ti-inbox"></i> Eingangskorb</button>
+  <button class="tab" onclick="showTab('list')" id="tab-list"><i class="ti ti-list"></i> Investitionsliste</button>
+  <button class="tab" onclick="showTab('lieferanten')" id="tab-lieferanten" style="display:none;"><i class="ti ti-building-store"></i> Lieferanten</button>
+  <button class="tab" onclick="showTab('benutzer')" id="tab-benutzer" style="display:none;"><i class="ti ti-users"></i> Benutzer</button>
+  <button class="tab" onclick="showTab('einstellungen')" id="tab-einstellungen" style="display:none;"><i class="ti ti-settings"></i> Einstellungen</button>
+</div>
+
+<!-- ══════════════════ VIEW: NEUER VORSCHLAG ══════════════════ -->
+<div class="content" id="view-form">
+  <div style="margin-bottom:18px;">
+    <span style="font-size:20px;font-weight:600;color:var(--ff-blue);">Beschaffungsvorschlag einreichen</span>
+    <div style="font-size:13px;color:var(--text2);margin-top:4px;">Jeder kann hier einen Vorschlag einreichen. Die Bearbeitung und Angebotseinholung erfolgt durch die Wehrführung.</div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Produktidentifikation</span>
+    <div class="produkt-box" style="margin-top:10px;">
+      <div class="form-row cols3">
+        <div class="field">
+          <label>Bezeichnung<span class="required-star">*</span></label>
+          <input type="text" id="f-bezeichnung" placeholder="z. B. Wärmebildkamera" oninput="clearError('bezeichnung')" />
+          <div class="field-error" id="err-bezeichnung">Pflichtfeld – bitte ausfüllen</div>
+        </div>
+        <div class="field">
+          <label>Hersteller<span class="required-star">*</span></label>
+          <input type="text" id="f-hersteller" placeholder="z. B. FLIR" oninput="clearError('hersteller')" />
+          <div class="field-error" id="err-hersteller">Pflichtfeld – bitte ausfüllen</div>
+        </div>
+        <div class="field">
+          <label>Modell / Typ<span class="required-star">*</span></label>
+          <input type="text" id="f-modell" placeholder="z. B. K33" oninput="clearError('modell')" />
+          <div class="field-error" id="err-modell">Pflichtfeld – bitte ausfüllen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Ihre Kontaktdaten</span>
+    <div class="form-row cols3" style="margin-top:10px;">
+      <div class="field">
+        <label>Name<span class="required-star">*</span></label>
+        <input type="text" id="f-einreicher-name" placeholder="Vor- und Nachname" oninput="clearError('einreicher-name')" />
+        <div class="field-error" id="err-einreicher-name">Pflichtfeld – bitte ausfüllen</div>
+      </div>
+      <div class="field">
+        <label>E-Mail</label>
+        <input type="email" id="f-einreicher-email" placeholder="name@beispiel.de" />
+      </div>
+      <div class="field">
+        <label>Handynummer</label>
+        <input type="tel" id="f-einreicher-tel" placeholder="z. B. 0160 12345678" />
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Kategorie</span>
+    <div class="checkbox-grid" id="cat-grid">
+      <label class="checkbox-item"><input type="checkbox" value="Fahrzeug"> Fahrzeug</label>
+      <label class="checkbox-item"><input type="checkbox" value="PSA"> Pers. Schutzausrüstung</label>
+      <label class="checkbox-item"><input type="checkbox" value="Ausrüstung/Technik"> Ausrüstung/Technik</label>
+      <label class="checkbox-item"><input type="checkbox" value="Atemschutz"> Atemschutz</label>
+      <label class="checkbox-item"><input type="checkbox" value="Digitalfunk"> Digitalfunk</label>
+      <label class="checkbox-item"><input type="checkbox" value="IT/Software"> IT/Software</label>
+      <label class="checkbox-item"><input type="checkbox" value="Sonstiges"> Sonstiges</label>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Anlass der Beschaffung</span>
+    <div class="checkbox-grid" id="anlass-grid">
+      <label class="checkbox-item"><input type="checkbox" value="Ersatzbeschaffung"> Ersatzbeschaffung</label>
+      <label class="checkbox-item"><input type="checkbox" value="Erweiterung"> Erweiterung</label>
+      <label class="checkbox-item"><input type="checkbox" value="Gesetzliche Anforderung"> Gesetzliche Anforderung</label>
+      <label class="checkbox-item"><input type="checkbox" value="Unfallverhütung"> Unfallverhütung</label>
+      <label class="checkbox-item"><input type="checkbox" value="Einsatzanforderung"> Einsatzanforderung</label>
+      <label class="checkbox-item"><input type="checkbox" value="Sonstiges"> Sonstiges</label>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Sachverhalt / Begründung</span>
+    <div class="field" style="margin-top:9px;"><textarea id="f-sachverhalt" placeholder="Beschreibung der Notwendigkeit…"></textarea></div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Risiken bei Nichtbeschaffung</span>
+    <div class="field" style="margin-top:9px;"><textarea id="f-risiken" placeholder="Welche Risiken entstehen, wenn nicht beschafft wird?"></textarea></div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Geschätzte Kosten (€ netto)</span>
+    <div class="field" style="margin-top:9px;"><input type="number" id="f-kosten" placeholder="z. B. 3400" min="0" /></div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Fördermöglichkeiten</span>
+    <div class="checkbox-grid">
+      <label class="checkbox-item"><input type="checkbox" value="Kreisförderung" id="f-foerd-kreis"> Kreisförderung</label>
+      <label class="checkbox-item"><input type="checkbox" value="Landesförderung" id="f-foerd-land"> Landesförderung</label>
+      <label class="checkbox-item"><input type="checkbox" value="Förderverein" id="f-foerd-verein"> Förderverein</label>
+      <label class="checkbox-item"><input type="checkbox" value="sonstige Förderung" id="f-foerd-sonst"> sonstige Förderung</label>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Priorität</span>
+    <div class="radio-grid">
+      <label class="radio-item"><input type="radio" name="prioritaet" value="Hoch"> Hoch (&lt; 2 Jahre)</label>
+      <label class="radio-item"><input type="radio" name="prioritaet" value="Mittel"> Mittel (3–5 Jahre)</label>
+      <label class="radio-item"><input type="radio" name="prioritaet" value="Niedrig"> Niedrig (&gt; 5 Jahre)</label>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <span class="section-label">Anhänge (Angebote / Produktflyer)</span>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave()" ondrop="dropFiles(event)">
+      <i class="ti ti-file-upload"></i>
+      PDF-Dateien hier ablegen oder klicken zum Auswählen
+      <div style="font-size:11px;margin-top:5px;opacity:.7;">Nur PDF-Dateien · max. 10 MB pro Datei</div>
+    </div>
+    <input type="file" id="file-input" accept="application/pdf" multiple style="display:none" onchange="handleFiles(this.files)" />
+    <div class="file-list" id="file-list"></div>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn-secondary" onclick="resetForm()"><i class="ti ti-x"></i> Zurücksetzen</button>
+    <button class="btn-primary" onclick="submitForm()"><i class="ti ti-device-floppy"></i> Vorschlag einreichen</button>
+  </div>
+</div>
+
+<!-- ══════════════════ VIEW: EINGANGSKORB ══════════════════ -->
+<div class="content" id="view-eingangskorb" style="display:none;">
+  <div style="margin-bottom:18px;">
+    <span style="font-size:20px;font-weight:600;color:var(--ff-blue);">Eingangskorb</span>
+    <div style="font-size:13px;color:var(--text2);margin-top:4px;">Neue Beschaffungsvorschläge zur Prüfung und Genehmigung.</div>
+  </div>
+  <div id="eingangskorb-summary" style="margin-bottom:16px;font-size:13px;color:var(--text2);"></div>
+  <div id="eingangskorb-empty" style="display:none;" class="empty-state">Keine ausstehenden Vorschläge.</div>
+  <table id="eingangskorb-table" class="card-table" style="display:none;">
+    <thead>
+      <tr>
+        <th style="width:28px;"></th>
+        <th style="width:80px;">Nr.</th>
+        <th>Bezeichnung</th>
+        <th style="width:140px;">Einreicher</th>
+        <th style="width:90px;">Eingegangen</th>
+        <th style="width:110px;">Status</th>
+        <th>Aktionen</th>
+      </tr>
+    </thead>
+    <tbody id="eingangskorb-tbody"></tbody>
+  </table>
+</div>
+
+<!-- ══════════════════ VIEW: INVESTITIONSLISTE ══════════════════ -->
+<div class="content" id="view-list" style="display:none;">
+  <div class="summary-bar" id="summary-bar"></div>
+  <div class="schwelle-legend" id="schwelle-legend"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <span style="font-size:18px;font-weight:600;color:var(--ff-blue);">Investitionsliste</span>
+    <span style="font-size:13px;color:var(--text2);" id="list-meta"></span>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="filter-text" placeholder="Suchen…" oninput="renderList()" />
+    <select id="filter-prio" onchange="renderList()"><option value="">Alle Prioritäten</option><option>Hoch</option><option>Mittel</option><option>Niedrig</option></select>
+    <select id="filter-kat" onchange="renderList()"><option value="">Alle Kategorien</option><option>Fahrzeug</option><option>PSA</option><option>Ausrüstung/Technik</option><option>Atemschutz</option><option>Digitalfunk</option><option>IT/Software</option><option>Sonstiges</option></select>
+    <select id="filter-vergabe" onchange="renderList()"><option value="">Alle Vergabearten</option><option>Direktauftrag</option><option>Beschränkte Ausschreibung</option><option>Öffentliche Ausschreibung</option><option>Europaweite Ausschreibung</option></select>
+  </div>
+  <div class="table-wrap" style="overflow-x:auto;">
+    <table class="card-table">
+      <thead><tr>
+        <th style="width:72px;">Nr.</th>
+        <th style="width:130px;">Bezeichnung</th>
+        <th style="width:115px;">Hersteller / Modell</th>
+        <th style="width:105px;">Kategorie</th>
+        <th style="width:88px;text-align:right;">Kosten</th>
+        <th style="width:68px;">Priorität</th>
+        <th style="width:170px;">Vergabeverfahren</th>
+        <th style="width:75px;">Ablauf</th>
+        <th style="width:90px;"></th>
+      </tr></thead>
+      <tbody id="list-body"></tbody>
+    </table>
+  </div>
+  <div id="empty-state" class="empty-state" style="display:none;">
+    <i class="ti ti-clipboard-list" style="font-size:42px;display:block;margin-bottom:10px;opacity:.25;"></i>
+    Noch keine Einträge vorhanden.<br><span style="font-size:13px;">Neuen Beschaffungsvorschlag erfassen.</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+    <span style="font-size:12px;color:var(--text2);font-weight:500;" id="gesamtkosten"></span>
+    <button class="btn-primary" onclick="showTab('form')"><i class="ti ti-plus"></i> Neuer Vorschlag</button>
+  </div>
+</div>
+
+<!-- ══════════════════ VIEW: LOGIN-PLATZHALTER ══════════════════ -->
+<div class="content" id="view-login" style="display:none;">
+  <div class="empty-state">
+    <i class="ti ti-lock" style="font-size:48px;display:block;margin-bottom:14px;opacity:.25;"></i>
+    Anmeldung erforderlich<br>
+    <span style="font-size:13px;">Bitte melden Sie sich an, um diesen Bereich zu nutzen.</span>
+    <br><br>
+    <button class="btn-primary" onclick="openLoginModal()"><i class="ti ti-login"></i> Anmelden</button>
+  </div>
+</div>
+
+<!-- ══════════════════ VIEW: LIEFERANTEN ══════════════════ -->
+<div class="content" id="view-lieferanten" style="display:none;">
+  <span style="font-size:18px;font-weight:600;color:var(--ff-blue);display:block;margin-bottom:18px;">Lieferanten</span>
+  <div class="table-wrap" style="overflow-x:auto;margin-bottom:24px;">
+    <table class="card-table">
+      <thead><tr>
+        <th>Name</th>
+        <th style="width:140px;">Ansprechpartner</th>
+        <th style="width:130px;">Telefon</th>
+        <th>E-Mail</th>
+        <th style="width:90px;"></th>
+      </tr></thead>
+      <tbody id="lieferanten-tbody"></tbody>
+    </table>
+  </div>
+  <div class="form-section">
+    <span class="section-label">Neuer Lieferant</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div class="mgmt-add-grid">
+        <div class="field"><label>Name<span class="required-star">*</span></label><input type="text" id="nl-name" placeholder="z. B. Matuczak Feuerschutz" /></div>
+        <div class="field"><label>Ansprechpartner</label><input type="text" id="nl-ap" placeholder="Vor- und Nachname" /></div>
+        <div class="field"><label>Telefon</label><input type="text" id="nl-tel" placeholder="z. B. 0160 12345678" /></div>
+        <div class="field"><label>E-Mail<span class="required-star">*</span></label><input type="email" id="nl-email" placeholder="name@firma.de" /></div>
+      </div>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+        <button class="btn-primary" onclick="addSupplier()"><i class="ti ti-plus"></i> Hinzufügen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ VIEW: BENUTZER ══════════════════ -->
+<div class="content" id="view-benutzer" style="display:none;">
+  <span style="font-size:18px;font-weight:600;color:var(--ff-blue);display:block;margin-bottom:18px;">Benutzer</span>
+  <div class="table-wrap" style="overflow-x:auto;margin-bottom:24px;">
+    <table class="card-table">
+      <thead><tr>
+        <th>Benutzername</th>
+        <th style="width:130px;">Rolle</th>
+        <th>E-Mail</th>
+        <th style="width:54px;">Info</th>
+        <th style="width:96px;">Angelegt am</th>
+        <th style="width:60px;"></th>
+      </tr></thead>
+      <tbody id="benutzer-tbody"></tbody>
+    </table>
+  </div>
+  <div class="form-section">
+    <span class="section-label">Neuer Benutzer</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div class="mgmt-add-grid">
+        <div class="field"><label>Benutzername<span class="required-star">*</span></label><input type="text" id="nu-name" autocomplete="off" /></div>
+        <div class="field"><label>Passwort<span class="required-star">*</span> <span style="font-weight:400;">(min. 6 Zeichen)</span></label><input type="password" id="nu-pass" autocomplete="new-password" /></div>
+        <div class="field">
+          <label>Rolle</label>
+          <select id="nu-role">
+            <option value="betrachter">Betrachter</option>
+            <option value="beschaffer">Beschaffer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="field"><label>E-Mail<span class="required-star">*</span></label><input type="email" id="nu-email" autocomplete="off" placeholder="name@ff.de" /></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+        <input type="checkbox" id="nu-notify" checked style="width:16px;height:16px;accent-color:var(--ff-blue);cursor:pointer;">
+        <label for="nu-notify" style="font-size:13px;cursor:pointer;color:var(--text);">Bei neuem Eingangskorb-Eintrag / Angebot benachrichtigen</label>
+      </div>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+        <button class="btn-primary" onclick="addUser()"><i class="ti ti-user-plus"></i> Benutzer anlegen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ VIEW: EINSTELLUNGEN ══════════════════ -->
+<div class="content" id="view-einstellungen" style="display:none;">
+  <span style="font-size:18px;font-weight:600;color:var(--ff-blue);display:block;margin-bottom:20px;">Einstellungen</span>
+
+  <!-- SMTP -->
+  <div class="form-section" style="margin-bottom:24px;">
+    <span class="section-label">SMTP-Konfiguration</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div class="mgmt-add-grid">
+        <div class="field"><label>Host</label><input type="text" id="st-host" placeholder="z. B. smtp.gmail.com" /></div>
+        <div class="field"><label>Port</label><input type="number" id="st-port" placeholder="587" /></div>
+        <div class="field"><label>Benutzername</label><input type="text" id="st-user" autocomplete="off" placeholder="name@beispiel.de" /></div>
+        <div class="field"><label>Passwort</label><input type="password" id="st-pass" autocomplete="new-password" placeholder="●●●●●● (leer lassen = unverändert)" /></div>
+        <div class="field"><label>Absender-E-Mail</label><input type="email" id="st-from" placeholder="absender@beispiel.de" /></div>
+        <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:20px;">
+          <input type="checkbox" id="st-tls" style="width:15px;height:15px;accent-color:var(--ff-blue);" checked>
+          <label for="st-tls" style="font-size:13px;cursor:pointer;color:var(--text);">STARTTLS verwenden</label>
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:flex-end;">
+        <button class="btn-primary" onclick="saveSmtp()"><i class="ti ti-device-floppy"></i> SMTP speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- E-Mail-Vorlage -->
+  <div class="form-section">
+    <span class="section-label">E-Mail-Vorlage (Angebotsanfrage)</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div class="field" style="margin-bottom:12px;"><label>Betreff</label><input type="text" id="st-subject" placeholder="Angebotsanfrage: {bezeichnung} – FF Moorrege" /></div>
+      <div class="field"><label>Vorlage</label><textarea id="st-body" style="height:220px;resize:vertical;font-family:monospace;font-size:12px;"></textarea></div>
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;margin-top:10px;font-size:12px;border:1px solid var(--border);">
+        <strong>Verfügbare Platzhalter:</strong>
+        <span style="color:var(--ff-blue);font-family:monospace;"> {ansprechpartner} {lieferant} {bezeichnung} {hersteller} {modell} {kategorie} {kosten} {nr}</span>
+        <div style="color:var(--text2);margin-top:4px;">Die Standard-Vorlage wird beim Öffnen dieser Seite vorausgefüllt. Änderungen werden gespeichert. Mit „Auf Standard zurücksetzen" wird die Original-Vorlage wiederhergestellt.</div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-secondary" onclick="resetEmailTemplate()"><i class="ti ti-refresh"></i> Auf Standard zurücksetzen</button>
+        <button class="btn-primary" onclick="saveEmailTemplate()"><i class="ti ti-device-floppy"></i> Vorlage speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAP -->
+  <div class="form-section" style="margin-top:24px;">
+    <span class="section-label">IMAP-Eingangspostfach (Antworten empfangen)</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;font-size:12px;border:1px solid var(--border);margin-bottom:14px;">
+        <i class="ti ti-info-circle" style="color:var(--ff-blue);"></i>
+        Wenn ein Lieferant auf eine Angebotsanfrage antwortet, erkennt das System den Tag <strong>[FF-Nr]</strong> im Betreff und ordnet das Angebot automatisch dem richtigen Vorschlag zu. PDF-Anhänge werden gespeichert.
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <input type="checkbox" id="imap-enabled" style="width:15px;height:15px;accent-color:var(--ff-blue);">
+        <label for="imap-enabled" style="font-size:13px;cursor:pointer;color:var(--text);font-weight:600;">IMAP-Polling aktivieren</label>
+      </div>
+      <div class="mgmt-add-grid">
+        <div class="field"><label>IMAP-Host</label><input type="text" id="imap-host" placeholder="z. B. imap.gmail.com" /></div>
+        <div class="field"><label>Port</label><input type="number" id="imap-port" placeholder="993" /></div>
+        <div class="field"><label>Benutzername</label><input type="text" id="imap-user" autocomplete="off" placeholder="name@beispiel.de" /></div>
+        <div class="field"><label>Passwort</label><input type="password" id="imap-pass" autocomplete="new-password" placeholder="●●●●●● (leer lassen = unverändert)" /></div>
+        <div class="field"><label>Ordner</label><input type="text" id="imap-folder" placeholder="INBOX" /></div>
+        <div class="field"><label>Abrufintervall (Minuten)</label><input type="number" id="imap-interval" placeholder="15" min="1" /></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+        <input type="checkbox" id="imap-ssl" style="width:15px;height:15px;accent-color:var(--ff-blue);" checked>
+        <label for="imap-ssl" style="font-size:13px;cursor:pointer;color:var(--text);">SSL/TLS (IMAP4_SSL, Port 993)</label>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="pollImapNow()" id="imap-poll-btn"><i class="ti ti-refresh"></i> Jetzt abrufen</button>
+        <button class="btn-primary" onclick="saveImap()"><i class="ti ti-device-floppy"></i> IMAP speichern</button>
+      </div>
+      <div id="imap-poll-result" style="display:none;margin-top:10px;font-size:12px;padding:8px 12px;border-radius:var(--radius);background:var(--bg2);border:1px solid var(--border);"></div>
+    </div>
+  </div>
+
+  <!-- VERGABE-SCHWELLEN SECTION -->
+  <div class="form-section" style="margin-top:24px;">
+    <span class="section-label">Vergabe-Schwellen</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;font-size:12px;border:1px solid var(--border);margin-bottom:14px;">
+        <i class="ti ti-info-circle" style="color:var(--ff-blue);"></i>
+        Grenzwerte (netto), Bezeichnungen und Hinweistexte je Vergabeverfahren. Die oberste Stufe gilt ohne Obergrenze. Änderungen wirken sofort in Legende, Liste und Detailansicht.
+      </div>
+      <div id="vergabe-editor"></div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="resetVergabe()"><i class="ti ti-refresh"></i> Auf Standard zurücksetzen</button>
+        <button class="btn-primary" onclick="saveVergabe()"><i class="ti ti-device-floppy"></i> Schwellen speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /.app-wrap -->
+
+<!-- ══════════════════ LIEFERANT EDIT MODAL ══════════════════ -->
+<div class="modal-overlay" id="lieferant-edit-overlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3><i class="ti ti-pencil"></i> Lieferant bearbeiten</h3>
+      <button class="modal-close" onclick="closeEditSupplierModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-lieferant-id" />
+      <div class="field" style="margin-bottom:12px;"><label>Name<span class="required-star">*</span></label><input type="text" id="edit-lieferant-name" /></div>
+      <div class="field" style="margin-bottom:12px;"><label>Ansprechpartner</label><input type="text" id="edit-lieferant-ap" /></div>
+      <div class="field" style="margin-bottom:12px;"><label>Telefon</label><input type="text" id="edit-lieferant-tel" /></div>
+      <div class="field"><label>E-Mail<span class="required-star">*</span></label><input type="email" id="edit-lieferant-email" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeEditSupplierModal()">Abbrechen</button>
+      <button class="btn-primary" onclick="saveSupplier()"><i class="ti ti-device-floppy"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ LOGIN MODAL ══════════════════ -->
+<div class="modal-overlay" id="login-modal-overlay">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <h3><i class="ti ti-login"></i> Anmelden</h3>
+      <button class="modal-close" onclick="closeLoginModal()">×</button>
+    </div>
+    <div class="login-modal-body">
+      <div class="field"><label>Benutzername oder E-Mail</label><input type="text" id="lm-user" autocomplete="username" /></div>
+      <div class="field" style="margin-top:12px;"><label>Passwort</label><input type="password" id="lm-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginFromModal()" /></div>
+      <div class="login-error" id="lm-error" style="display:none;margin-top:10px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeLoginModal()">Abbrechen</button>
+      <button class="btn-primary" id="lm-btn" onclick="loginFromModal()"><i class="ti ti-login"></i> Anmelden</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ DETAIL MODAL ══════════════════ -->
+<div class="modal-overlay" id="detail-modal-overlay">
+  <div class="modal" style="max-width:860px;width:100%;">
+    <div class="modal-header">
+      <h3><i class="ti ti-clipboard-list"></i> <span id="dm-title">Beschaffungsvorschlag</span></h3>
+      <button class="modal-close" onclick="closeDetailModal()">×</button>
+    </div>
+    <div class="modal-body" style="max-height:75vh;">
+      <!-- Meta -->
+      <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <span class="nr-display" id="dm-nr" style="font-size:13px;">Nr.: —</span>
+        <span style="font-size:12px;color:var(--text2);">Eingegangen: <strong id="dm-datum">—</strong></span>
+      </div>
+      <!-- Einreicher-Kontakt -->
+      <div id="dm-einreicher-box" style="background:#e6f1fb;border:1px solid #185fa5;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:none;">
+        <div style="font-size:11px;font-weight:600;color:#0c447c;margin-bottom:6px;"><i class="ti ti-user-circle"></i> Einreicher (Rückfragen)</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:#1a2233;">
+          <span id="dm-einreicher-name"></span>
+          <span id="dm-einreicher-email" style="color:#185fa5;"></span>
+          <span id="dm-einreicher-tel"></span>
+        </div>
+      </div>
+      <!-- Einreichung read-only -->
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:16px;border:1px solid var(--border);margin-bottom:16px;">
+        <span class="section-label" style="margin-bottom:12px;display:inline-block;">Eingereichte Daten</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:13px;">
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Bezeichnung</div><div id="dm-bezeichnung" style="font-weight:600;">—</div></div>
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Hersteller / Modell</div><div id="dm-hm">—</div></div>
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Kategorie</div><div id="dm-kategorie">—</div></div>
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Anlass</div><div id="dm-anlass">—</div></div>
+          <div style="grid-column:1/-1;"><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Sachverhalt / Begründung</div><div id="dm-sachverhalt" style="white-space:pre-wrap;line-height:1.5;">—</div></div>
+          <div style="grid-column:1/-1;"><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Risiken bei Nichtbeschaffung</div><div id="dm-risiken" style="white-space:pre-wrap;line-height:1.5;">—</div></div>
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Geschätzte Kosten</div><div id="dm-kosten-anzeige">—</div></div>
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Priorität</div><div id="dm-prio">—</div></div>
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Fördermöglichkeiten</div><div id="dm-foerderung">—</div></div>
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Anhänge</div><div id="dm-files">—</div></div>
+        </div>
+      </div>
+      <!-- Interne Bearbeitung -->
+      <div style="border:2px solid var(--ff-blue);border-radius:var(--radius);padding:16px;">
+        <span class="section-label" style="margin-bottom:14px;display:inline-block;">Interne Bearbeitung (Beschaffer)</span>
+        <!-- Stückzahl + Gesamtpreis -->
+        <div class="form-row cols2" style="margin-bottom:12px;" id="dm-menge-row">
+          <div class="field">
+            <label>Menge (Stück)</label>
+            <input type="number" id="dm-menge" min="1" placeholder="1" oninput="updateGesamtpreis()" />
+          </div>
+          <div class="field">
+            <label>Geschätzter Stückpreis (€ netto)</label>
+            <input type="number" id="dm-stueckpreis" min="0" step="0.01" placeholder="z. B. 250.00" oninput="updateGesamtpreis()" />
+          </div>
+        </div>
+        <div id="dm-gesamtpreis-display" style="display:none;background:var(--bg2);border-radius:var(--radius);padding:8px 14px;font-size:13px;margin-bottom:12px;border:1px solid var(--border);">
+          Gesamtpreis: <strong id="dm-gesamtpreis-val"></strong>
+        </div>
+        <div class="form-row cols2" style="margin-bottom:12px;">
+          <div class="field">
+            <label>Kosten (aktualisiert, € netto)</label>
+            <input type="number" id="dm-kosten" min="0" placeholder="z. B. 3400" oninput="updateDetailVergabe()" />
+          </div>
+          <div class="field">
+            <label>Beschaffungsart</label>
+            <select id="dm-beschaffungsart">
+              <option value="">— bitte wählen —</option>
+              <option>Direktauftrag</option>
+              <option>Angebotsverfahren</option>
+              <option>Beschränkte Ausschreibung</option>
+              <option>Öffentliche Ausschreibung</option>
+              <option>Europaweite Ausschreibung</option>
+              <option>Rahmenvertrag</option>
+            </select>
+          </div>
+        </div>
+        <div class="vergabe-info-box" id="detail-vergabe-hinweis" style="margin-bottom:12px;">
+          <i class="ti vergabe-icon" id="detail-vergabe-icon"></i>
+          <div><div class="vergabe-title" id="detail-vergabe-title"></div><div id="detail-vergabe-text"></div></div>
+        </div>
+        <div class="rechtsbasis" id="detail-rechts-basis" style="display:none;margin-bottom:12px;">Rechtsgrundlage: SHVgVO i.d.F. vom 16.05.2026 · EU-Schwellenwert Lieferleistungen: 221.000 € netto</div>
+        <div class="field" style="margin-bottom:12px;">
+          <label>Ablauf</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;" id="dm-ablauf-chips">
+            <span class="ablauf-chip" data-val="Markterkundung" onclick="toggleChip(this)">Markterkundung</span>
+            <span class="ablauf-chip" data-val="Angebote eingeholt" onclick="toggleChip(this)">Angebote eingeholt</span>
+            <span class="ablauf-chip" data-val="Vorstandsbeschluss" onclick="toggleChip(this)">Vorstandsbeschluss</span>
+            <span class="ablauf-chip" data-val="Beschafft" onclick="toggleChip(this)">Beschafft</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Interne Notizen / Empfehlung</label>
+          <textarea id="dm-notizen" style="height:90px;resize:vertical;" placeholder="Beurteilung, Vergabeentscheidung, Empfehlung…"></textarea>
+        </div>
+        <!-- Alternativpositionen -->
+        <div class="field" style="margin-top:14px;" id="dm-alt-section">
+          <label style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Alternativpositionen</span>
+            <button class="btn-secondary" style="padding:3px 10px;font-size:12px;" onclick="openAddAltForm()" id="dm-add-alt-btn"><i class="ti ti-plus"></i> Alternative hinzufügen</button>
+          </label>
+          <div id="dm-add-alt-form" style="display:none;background:var(--bg2);border-radius:var(--radius);padding:10px 12px;margin-top:8px;border:1px solid var(--border);">
+            <div class="form-row cols2" style="margin-bottom:8px;">
+              <div class="field"><label style="font-size:11px;">Hersteller</label><input type="text" id="dm-alt-hersteller" placeholder="z. B. FLIR" /></div>
+              <div class="field"><label style="font-size:11px;">Modell</label><input type="text" id="dm-alt-modell" placeholder="z. B. K45" /></div>
+            </div>
+            <div class="field" style="margin-bottom:8px;"><label style="font-size:11px;">Notiz (optional)</label><input type="text" id="dm-alt-notiz" placeholder="z. B. günstigere Alternative" /></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn-secondary" style="padding:4px 12px;font-size:12px;" onclick="closeAddAltForm()">Abbrechen</button>
+              <button class="btn-primary" style="padding:4px 12px;font-size:12px;" onclick="saveAlternative()"><i class="ti ti-check"></i> Speichern</button>
+            </div>
+          </div>
+          <div id="dm-alternatives-list" style="margin-top:8px;font-size:12px;color:var(--text2);">Keine Alternativpositionen.</div>
+        </div>
+        <!-- Angebotsvergleich -->
+        <div class="field" style="margin-top:14px;" id="dm-quotes-section">
+          <label style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Angebotsvergleich</span>
+            <button class="btn-secondary" style="padding:3px 10px;font-size:12px;" onclick="openQuoteModal()" id="dm-add-quote-btn"><i class="ti ti-plus"></i> Angebot eintragen</button>
+          </label>
+          <div id="dm-quotes-list" style="margin-top:8px;font-size:12px;color:var(--text2);">Keine Angebote erfasst.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn-secondary" onclick="printProposal()"><i class="ti ti-printer"></i> Drucken</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-angebot" onclick="openAngebotFromDetail()"><i class="ti ti-mail-forward"></i> Angebot anfordern</button>
+        <button class="btn-primary" id="dm-save-btn" onclick="saveDetail()"><i class="ti ti-device-floppy"></i> Speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ ANGEBOT MODAL ══════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="ti ti-mail-forward"></i> Angebot anfordern</h3>
+      <button class="modal-close" onclick="closeAngebotModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="angebot-hint"><i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px;"></i><span>Lieferant(en) auswählen – der Server versendet vorausgefüllte Angebotsanfragen per E-Mail.</span></div>
+      <div id="produkt-preview" style="background:var(--bg2);border-radius:var(--radius);padding:11px 14px;margin-bottom:16px;font-size:12px;border:1px solid var(--border);"></div>
+      <div id="lieferanten-liste"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeAngebotModal()">Abbrechen</button>
+      <button class="btn-primary" id="btn-send-angebot" onclick="sendAngebote()"><i class="ti ti-send"></i> Anfrage(n) senden</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ QUOTE MODAL ══════════════════ -->
+<div class="modal-overlay" id="quote-modal-overlay">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3><i class="ti ti-receipt"></i> Angebot eintragen</h3>
+      <button class="modal-close" onclick="closeQuoteModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field" style="margin-bottom:12px;">
+        <label>Lieferant<span class="required-star">*</span></label>
+        <select id="qm-supplier"></select>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Bezieht sich auf Alternative (optional)</label>
+        <select id="qm-alternative">
+          <option value="">— Hauptposition —</option>
+        </select>
+      </div>
+      <div class="form-row cols2" style="margin-bottom:12px;">
+        <div class="field">
+          <label>Stückpreis (€ netto)<span class="required-star">*</span></label>
+          <input type="number" id="qm-preis" min="0" step="0.01" placeholder="z. B. 250.00" />
+        </div>
+        <div class="field">
+          <label>Lieferzeit</label>
+          <input type="text" id="qm-lieferzeit" placeholder="z. B. 4 Wochen" />
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Notizen</label>
+        <textarea id="qm-notizen" style="height:60px;resize:vertical;" placeholder="z. B. Rabattkonditionen, Sonderangebote…"></textarea>
+      </div>
+      <div class="field">
+        <label>Angebots-PDF (optional)</label>
+        <input type="file" id="qm-pdf" accept=".pdf" style="font-size:13px;" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeQuoteModal()">Abbrechen</button>
+      <button class="btn-primary" id="qm-save-btn" onclick="saveQuote()"><i class="ti ti-device-floppy"></i> Angebot speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ EMAIL MODAL ══════════════════ -->
+<div class="modal-overlay" id="email-modal-overlay">
+  <div class="modal" style="max-width:840px;">
+    <div class="modal-header">
+      <h3><i class="ti ti-mail"></i> Original-E-Mail</h3>
+      <button class="modal-close" onclick="closeEmailModal()">×</button>
+    </div>
+    <div class="modal-body" style="padding:0;max-height:78vh;overflow:hidden;">
+      <iframe id="email-modal-frame" style="border:0;width:100%;height:78vh;display:block;"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ INPUT MODAL ══════════════════ -->
+<div class="modal-overlay" id="input-modal-overlay">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header" style="background:var(--ff-blue);">
+      <h3 id="input-modal-title"><i class="ti ti-edit"></i> Eingabe</h3>
+      <button class="modal-close" onclick="resolveInput(null)">×</button>
+    </div>
+    <div class="modal-body" style="padding:16px 20px 8px;">
+      <label id="input-modal-label" style="font-size:13px;font-weight:600;display:block;margin-bottom:8px;"></label>
+      <input id="input-modal-field" type="number" step="0.01" min="0" style="width:100%;box-sizing:border-box;"
+        onkeydown="if(event.key==='Enter')resolveInput(document.getElementById('input-modal-field').value)" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="resolveInput(null)">Abbrechen</button>
+      <button class="btn-primary" onclick="resolveInput(document.getElementById('input-modal-field').value)"><i class="ti ti-check"></i> Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ CONFIRM MODAL ══════════════════ -->
+<div class="modal-overlay" id="confirm-modal-overlay">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header" style="background:var(--ff-blue);">
+      <h3 id="confirm-modal-title" style="display:flex;align-items:center;gap:8px;"><i class="ti ti-alert-triangle"></i> Bestätigen</h3>
+      <button class="modal-close" onclick="resolveConfirm(false)">×</button>
+    </div>
+    <div class="modal-body" style="padding:18px 20px 8px;">
+      <p id="confirm-modal-msg" style="margin:0;font-size:14px;line-height:1.6;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="resolveConfirm(false)">Abbrechen</button>
+      <button id="confirm-modal-ok" class="btn-danger" onclick="resolveConfirm(true)">Bestätigen</button>
+    </div>
+  </div>
+</div>
+
+<div id="print-content" style="display:none;"></div>
+<div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-msg"></span></div>
+
+<script>window.VERGABE_TIERS = {{ vergabe_tiers|tojson }};</script>
+<script>
+// ══════════════════ CONSTANTS ══════════════════
+const ABLAUF_ORDER = ["Markterkundung","Angebote eingeholt","Vorstandsbeschluss","Beschafft"];
+const PROTECTED_VIEWS = ['eingangskorb','list','lieferanten','benutzer','einstellungen'];
+const ALL_VIEWS = ['form','eingangskorb','list','login','lieferanten','benutzer','einstellungen'];
+
+// ══════════════════ STATE ══════════════════
+let currentUser = null;
+let proposals = [];
+let attachedFiles = [];
+let modalSuppliers = [];
+let pendingTab = null;
+let currentAngebotProposal = null;
+let currentDetailProposal = null;
+
+function isBeschaffer() { return currentUser && (currentUser.role === 'beschaffer' || currentUser.role === 'admin'); }
+function isAdmin() { return currentUser && currentUser.role === 'admin'; }
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════ INIT ══════════════════
+(async function init() {
+  const r = await fetch('/api/auth/needs-setup');
+  const d = await r.json();
+  if (d.needsSetup) {
+    document.getElementById('setup-overlay').style.display = 'flex';
+    return;
+  }
+  await refreshAuth();
+  updateTabVisibility();
+  renderSchwelleLegend();
+  renderVergabeDropdowns();
+})();
+
+async function refreshAuth() {
+  try {
+    const r = await fetch('/api/auth/me');
+    currentUser = r.ok ? (await r.json()).user : null;
+  } catch {
+    currentUser = null;
+  }
+}
+
+function updateTabVisibility() {
+  const ek = document.getElementById('tab-eingangskorb');
+  const li = document.getElementById('tab-lieferanten');
+  const be = document.getElementById('tab-benutzer');
+  const ei = document.getElementById('tab-einstellungen');
+  const hdrInfo = document.getElementById('hdr-info');
+  const hdrUser = document.getElementById('hdr-user');
+  if (currentUser) {
+    ek.style.display = isBeschaffer() ? '' : 'none';
+    li.style.display = '';
+    be.style.display = isAdmin() ? '' : 'none';
+    ei.style.display = isAdmin() ? '' : 'none';
+    hdrInfo.style.display = 'none';
+    hdrUser.style.display = '';
+    document.getElementById('hdr-username').textContent = currentUser.username;
+  } else {
+    ek.style.display = 'none';
+    li.style.display = 'none';
+    be.style.display = 'none';
+    ei.style.display = 'none';
+    hdrInfo.style.display = '';
+    hdrUser.style.display = 'none';
+  }
+}
+
+// ══════════════════ AUTH ══════════════════
+function openLoginModal() {
+  document.getElementById('lm-user').value = '';
+  document.getElementById('lm-pass').value = '';
+  document.getElementById('lm-error').style.display = 'none';
+  document.getElementById('login-modal-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('lm-user').focus(), 100);
+}
+
+function closeLoginModal() {
+  document.getElementById('login-modal-overlay').classList.remove('show');
+}
+
+async function loginFromModal() {
+  const username = document.getElementById('lm-user').value.trim();
+  const password = document.getElementById('lm-pass').value;
+  const errEl = document.getElementById('lm-error');
+  const btn = document.getElementById('lm-btn');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Anmelden…';
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, password}),
+    });
+    if (r.ok) {
+      currentUser = (await r.json()).user;
+      updateTabVisibility();
+      closeLoginModal();
+      if (pendingTab) {
+        const t = pendingTab;
+        pendingTab = null;
+        showTab(t);
+      }
+    } else {
+      const e = await r.json();
+      errEl.textContent = e.error || 'Anmeldung fehlgeschlagen';
+      errEl.style.display = 'block';
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-login"></i> Anmelden';
+  }
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', {method: 'POST'});
+  currentUser = null;
+  proposals = [];
+  updateTabVisibility();
+  showTab('form');
+  showToast('Abgemeldet.');
+}
+
+async function doSetup() {
+  const username = document.getElementById('su-user').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const pass = document.getElementById('su-pass').value;
+  const pass2 = document.getElementById('su-pass2').value;
+  const errEl = document.getElementById('su-error');
+  errEl.style.display = 'none';
+  if (!username) { errEl.textContent = 'Benutzername erforderlich'; errEl.style.display = 'block'; return; }
+  if (!email || !email.includes('@')) { errEl.textContent = 'Gültige E-Mail-Adresse erforderlich'; errEl.style.display = 'block'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Passwort muss min. 6 Zeichen haben'; errEl.style.display = 'block'; return; }
+  if (pass !== pass2) { errEl.textContent = 'Passwörter stimmen nicht überein'; errEl.style.display = 'block'; return; }
+  const r = await fetch('/api/auth/setup', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username, password: pass, email}),
+  });
+  if (r.ok) {
+    currentUser = (await r.json()).user;
+    document.getElementById('setup-overlay').style.display = 'none';
+    updateTabVisibility();
+    showToast('Admin-Account angelegt. Willkommen!');
+  } else {
+    const e = await r.json();
+    errEl.textContent = e.error || 'Fehler beim Anlegen';
+    errEl.style.display = 'block';
+  }
+}
+
+// ══════════════════ TABS ══════════════════
+function _activateTab(t) {
+  ['form','eingangskorb','list','lieferanten','benutzer','einstellungen'].forEach(id => {
+    const el = document.getElementById('tab-' + id);
+    if (el) el.className = 'tab' + (id === t ? ' active' : '');
+  });
+}
+
+function _switchView(t) {
+  ALL_VIEWS.forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.style.display = 'none';
+  });
+  const el = document.getElementById('view-' + t);
+  if (el) el.style.display = 'block';
+}
+
+function showTab(t) {
+  if (PROTECTED_VIEWS.includes(t) && !currentUser) {
+    pendingTab = t;
+    _activateTab(t);
+    _switchView('login');
+    return;
+  }
+  pendingTab = null;
+  _activateTab(t);
+  _switchView(t);
+  if (t === 'list') loadProposals();
+  if (t === 'eingangskorb') loadEingangskorb();
+  if (t === 'lieferanten') loadSuppliersTab();
+  if (t === 'benutzer') loadUsersTab();
+  if (t === 'einstellungen') loadSettingsTab();
+}
+
+// ══════════════════ PROPOSALS ══════════════════
+async function submitForm() {
+  if (!validateForm()) return;
+  const formData = new FormData();
+  formData.append('einreicher_name', document.getElementById('f-einreicher-name').value.trim());
+  formData.append('einreicher_email', document.getElementById('f-einreicher-email').value.trim());
+  formData.append('einreicher_tel', document.getElementById('f-einreicher-tel').value.trim());
+  formData.append('bezeichnung', document.getElementById('f-bezeichnung').value.trim());
+  formData.append('hersteller', document.getElementById('f-hersteller').value.trim());
+  formData.append('modell', document.getElementById('f-modell').value.trim());
+  formData.append('kategorie', getChecked('cat-grid') || '—');
+  formData.append('anlass', getChecked('anlass-grid') || '—');
+  formData.append('sachverhalt', document.getElementById('f-sachverhalt').value);
+  formData.append('risiken', document.getElementById('f-risiken').value);
+  formData.append('kosten', document.getElementById('f-kosten').value || '0');
+  formData.append('foerderung', getFordering());
+  const prio = document.querySelector('input[name=prioritaet]:checked');
+  formData.append('prioritaet', prio ? prio.value : '—');
+  for (const f of attachedFiles) formData.append('files', f);
+  const r = await fetch('/api/proposals', {method: 'POST', body: formData});
+  if (r.ok) {
+    const d = await r.json();
+    showToast('Eintrag ' + d.nr + ' eingereicht – wartet auf Genehmigung.');
+    resetForm();
+    if (isBeschaffer()) setTimeout(() => showTab('eingangskorb'), 700);
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast('Fehler: ' + (e.error || 'Unbekannter Fehler'));
+  }
+}
+
+async function loadProposals() {
+  const r = await fetch('/api/proposals');
+  if (r.ok) { proposals = await r.json(); renderList(); }
+}
+
+// ══════════════════ EINGANGSKORB ══════════════════
+async function loadEingangskorb() {
+  const r = await fetch('/api/proposals/pending');
+  if (!r.ok) { showToast('Fehler beim Laden des Eingangskorbs.'); return; }
+  const items = await r.json();
+  const tbody = document.getElementById('eingangskorb-tbody');
+  const table = document.getElementById('eingangskorb-table');
+  const empty = document.getElementById('eingangskorb-empty');
+  const summary = document.getElementById('eingangskorb-summary');
+  tbody.innerHTML = '';
+  const pending = items.filter(p => p.status === 'pending');
+  const rejected = items.filter(p => p.status === 'rejected');
+  summary.textContent = pending.length + ' ausstehend' + (rejected.length ? ', ' + rejected.length + ' abgelehnt' : '');
+  if (!items.length) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  table.style.display = '';
+  empty.style.display = 'none';
+  items.forEach(p => {
+    const isRejected = p.status === 'rejected';
+    const domId = p.nr.replace(/[^a-zA-Z0-9]/g, '_');
+    const nrEnc = encodeURIComponent(p.nr);
+
+    const tr = document.createElement('tr');
+    if (isRejected) tr.style.background = '#fff8f8';
+    tr.innerHTML = '<td data-label=""><button class="ek-toggle-btn" id="ek-btn-' + domId + '" onclick="toggleEingangDetail(\'' + domId + '\')" title="Details anzeigen">&#9654;</button></td>'
+      + '<td data-label="Nr." style="font-weight:600;color:var(--ff-blue);font-size:12px;">' + esc(p.nr) + '</td>'
+      + '<td data-label="Bezeichnung">' + esc(p.bezeichnung) + '</td>'
+      + '<td data-label="Einreicher" style="font-size:12px;color:var(--text2);">' + (p.einreicher_name ? esc(p.einreicher_name) : '—') + '</td>'
+      + '<td data-label="Eingegangen" style="font-size:12px;color:var(--text2);">' + (p.created_at || '—') + '</td>'
+      + '<td data-label="Status"><span class="' + (isRejected ? 'badge-rejected' : 'badge-pending') + '">' + (isRejected ? 'Abgelehnt' : 'Ausstehend') + '</span></td>'
+      + '<td data-label="" style="white-space:nowrap;">'
+      + (isRejected
+          ? '<button class="btn-success" onclick="approveProposal(\'' + nrEnc + '\')" style="margin-right:4px;"><i class="ti ti-check"></i> Genehmigen</button>'
+            + '<button class="btn-danger" onclick="deleteEingangEntry(\'' + nrEnc + '\')"><i class="ti ti-trash"></i></button>'
+          : '<button class="btn-success" onclick="approveProposal(\'' + nrEnc + '\')" style="margin-right:4px;"><i class="ti ti-check"></i> Genehmigen</button>'
+            + '<button class="btn-danger" onclick="rejectProposal(\'' + nrEnc + '\')"><i class="ti ti-x"></i> Ablehnen</button>')
+      + '</td>';
+
+    const hm = [p.hersteller, p.modell].filter(Boolean).join(' / ') || '—';
+    const contact = [p.einreicher_email, p.einreicher_tel].filter(Boolean).join(' · ') || '—';
+    const sachverhalt = p.sachverhalt ? (p.sachverhalt.length > 220 ? p.sachverhalt.substring(0, 220) + '…' : p.sachverhalt) : '—';
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'ek-detail-row';
+    detailTr.id = 'ek-detail-' + domId;
+    detailTr.style.display = 'none';
+    detailTr.innerHTML = '<td colspan="7"><div class="ek-detail-inner">'
+      + '<div class="ek-field"><label>Hersteller / Modell</label><span>' + esc(hm) + '</span></div>'
+      + '<div class="ek-field"><label>Kategorie</label><span>' + esc(p.kategorie || '—') + '</span></div>'
+      + '<div class="ek-field"><label>Menge</label><span>' + esc(String(p.menge || 1)) + ' Stück</span></div>'
+      + '<div class="ek-field"><label>Anlass</label><span>' + esc(p.anlass || '—') + '</span></div>'
+      + '<div class="ek-field"><label>Priorität</label><span>' + esc(p.prioritaet || '—') + '</span></div>'
+      + '<div class="ek-field"><label>Kontakt</label><span>' + esc(contact) + '</span></div>'
+      + '<div class="ek-field ek-sachverhalt"><label>Sachverhalt</label><span>' + esc(sachverhalt) + '</span></div>'
+      + '</div></td>';
+
+    tbody.appendChild(tr);
+    tbody.appendChild(detailTr);
+  });
+}
+
+async function approveProposal(nrEnc) {
+  const nr = decodeURIComponent(nrEnc);
+  if (!await showConfirm('Vorschlag ' + nr + ' genehmigen und in die Investitionsliste übernehmen?', {label: 'Genehmigen', btnClass: 'btn-success', title: 'Genehmigen'})) return;
+  const r = await fetch('/api/proposals/' + nrEnc + '/approve', {method: 'POST'});
+  if (r.ok) { showToast('Vorschlag ' + nr + ' genehmigt.'); loadEingangskorb(); }
+  else showToast('Fehler beim Genehmigen.');
+}
+
+async function rejectProposal(nrEnc) {
+  const nr = decodeURIComponent(nrEnc);
+  if (!await showConfirm('Vorschlag ' + nr + ' ablehnen? Der Eintrag verbleibt im Eingangskorb.', {label: 'Ablehnen', title: 'Ablehnen'})) return;
+  const r = await fetch('/api/proposals/' + nrEnc + '/reject', {method: 'POST'});
+  if (r.ok) { showToast('Vorschlag ' + nr + ' abgelehnt.'); loadEingangskorb(); }
+  else showToast('Fehler beim Ablehnen.');
+}
+
+async function deleteEingangEntry(nrEnc) {
+  const nr = decodeURIComponent(nrEnc);
+  if (!await showConfirm('Vorschlag ' + nr + ' endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.', {label: 'Löschen', title: 'Löschen'})) return;
+  const r = await fetch('/api/proposals/' + nrEnc, {method: 'DELETE'});
+  if (r.ok) { showToast('Vorschlag gelöscht.'); loadEingangskorb(); }
+  else showToast('Fehler beim Löschen.');
+}
+
+function toggleEingangDetail(domId) {
+  const row = document.getElementById('ek-detail-' + domId);
+  const btn = document.getElementById('ek-btn-' + domId);
+  if (!row) return;
+  const isOpen = row.style.display !== 'none';
+  row.style.display = isOpen ? 'none' : '';
+  btn.classList.toggle('open', !isOpen);
+}
+
+async function deleteEntry(nr) {
+  if (!await showConfirm('Eintrag ' + nr + ' wirklich löschen?', {label: 'Löschen', title: 'Löschen'})) return;
+  const r = await fetch('/api/proposals/' + nr, {method: 'DELETE'});
+  if (r.ok) {
+    proposals = proposals.filter(p => p.nr !== nr);
+    renderList();
+    showToast('Eintrag entfernt.');
+  } else {
+    showToast('Fehler beim Löschen.');
+  }
+}
+
+// ══════════════════ LIEFERANTEN ══════════════════
+async function loadSuppliersTab() {
+  const r = await fetch('/api/suppliers');
+  if (!r.ok) return;
+  const suppliers = await r.json();
+  const tbody = document.getElementById('lieferanten-tbody');
+  tbody.innerHTML = '';
+  if (!suppliers.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:24px;">Keine Lieferanten vorhanden.</td></tr>';
+    return;
+  }
+  suppliers.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td data-label="Name">' + esc(s.name) + (s.test ? ' <span class="test-badge">Test</span>' : '') + '</td>'
+      + '<td data-label="Ansprechpartner" style="font-size:12px;">' + esc(s.ansprechpartner || '—') + '</td>'
+      + '<td data-label="Telefon" style="font-size:12px;">' + esc(s.tel || '—') + '</td>'
+      + '<td data-label="E-Mail" style="font-size:12px;">' + esc(s.email) + '</td>'
+      + '<td data-label="" style="white-space:nowrap;"><button class="btn-secondary" style="padding:4px 8px;font-size:12px;margin-right:4px;" onclick="openEditSupplierModal(' + s.id + ')" title="Bearbeiten"><i class="ti ti-pencil"></i></button><button class="btn-danger" onclick="deleteSupplier(' + s.id + ')"><i class="ti ti-trash"></i></button></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+async function addSupplier() {
+  const name = document.getElementById('nl-name').value.trim();
+  const email = document.getElementById('nl-email').value.trim();
+  if (!name || !email) { showToast('Name und E-Mail sind Pflichtfelder.'); return; }
+  const r = await fetch('/api/suppliers', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name, ansprechpartner: document.getElementById('nl-ap').value.trim(), tel: document.getElementById('nl-tel').value.trim(), email}),
+  });
+  if (r.ok) {
+    ['nl-name','nl-ap','nl-tel','nl-email'].forEach(id => document.getElementById(id).value = '');
+    showToast('Lieferant hinzugefügt.');
+    loadSuppliersTab();
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast('Fehler: ' + (e.error || ''));
+  }
+}
+
+async function deleteSupplier(id) {
+  if (!await showConfirm('Lieferant wirklich löschen?', {label: 'Löschen', title: 'Löschen'})) return;
+  const r = await fetch('/api/suppliers/' + id, {method: 'DELETE'});
+  if (r.ok) { showToast('Lieferant entfernt.'); loadSuppliersTab(); }
+  else showToast('Fehler beim Löschen.');
+}
+
+let _editSupplierId = null;
+
+function openEditSupplierModal(id) {
+  const s = modalSuppliers.find ? null : null; // lookup via fresh API
+  _editSupplierId = id;
+  fetch('/api/suppliers').then(r => r.json()).then(list => {
+    const s = list.find(x => x.id === id);
+    if (!s) { showToast('Lieferant nicht gefunden.'); return; }
+    document.getElementById('edit-lieferant-id').value = s.id;
+    document.getElementById('edit-lieferant-name').value = s.name;
+    document.getElementById('edit-lieferant-ap').value = s.ansprechpartner || '';
+    document.getElementById('edit-lieferant-tel').value = s.tel || '';
+    document.getElementById('edit-lieferant-email').value = s.email;
+    document.getElementById('lieferant-edit-overlay').classList.add('show');
+  });
+}
+
+function closeEditSupplierModal() {
+  document.getElementById('lieferant-edit-overlay').classList.remove('show');
+  _editSupplierId = null;
+}
+
+async function saveSupplier() {
+  const id = _editSupplierId;
+  if (!id) return;
+  const name = document.getElementById('edit-lieferant-name').value.trim();
+  const email = document.getElementById('edit-lieferant-email').value.trim();
+  if (!name || !email) { showToast('Name und E-Mail sind Pflichtfelder.'); return; }
+  const r = await fetch('/api/suppliers/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      name,
+      ansprechpartner: document.getElementById('edit-lieferant-ap').value.trim(),
+      tel: document.getElementById('edit-lieferant-tel').value.trim(),
+      email,
+    }),
+  });
+  if (r.ok) {
+    showToast('Lieferant gespeichert.');
+    closeEditSupplierModal();
+    loadSuppliersTab();
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast('Fehler: ' + (e.error || ''));
+  }
+}
+
+// ══════════════════ EINSTELLUNGEN ══════════════════
+async function loadSettingsTab() {
+  const r = await fetch('/api/settings');
+  if (!r.ok) return;
+  const d = await r.json();
+  document.getElementById('st-host').value = d.smtp_host || '';
+  document.getElementById('st-port').value = d.smtp_port || '';
+  document.getElementById('st-user').value = d.smtp_user || '';
+  document.getElementById('st-pass').value = '';
+  document.getElementById('st-pass').placeholder = d.smtp_password ? '●●●●●● (leer lassen = unverändert)' : 'Passwort eingeben';
+  document.getElementById('st-from').value = d.smtp_from || '';
+  document.getElementById('st-tls').checked = (d.smtp_tls || 'true') !== 'false';
+  document.getElementById('st-subject').value = d.email_subject || d._default_subject || '';
+  document.getElementById('st-body').value = d.email_body || d._default_body || '';
+  _loadImapFields(d);
+  if (Array.isArray(d.vergabe_tiers)) window.VERGABE_TIERS = d.vergabe_tiers;
+  renderVergabeEditor(window.VERGABE_TIERS);
+}
+
+function renderVergabeEditor(tiers) {
+  const el = document.getElementById('vergabe-editor');
+  if (!el) return;
+  el.innerHTML = (tiers || []).map((t, i) => {
+    const maxField = (t.max == null)
+      ? '<div class="field"><label>Obergrenze</label><input type="text" value="keine (oberste Stufe)" disabled style="background:var(--bg2);color:var(--text2);"></div>'
+      : '<div class="field"><label>Grenze ≤ (€ netto)</label><input type="number" min="1" id="vt-' + i + '-max" value="' + t.max + '"></div>';
+    return '<div style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;">'
+      + '<div class="form-row cols2" style="margin-bottom:10px;">'
+      + '<div class="field"><label>Bezeichnung</label><input type="text" id="vt-' + i + '-label" value="' + esc(t.label) + '"></div>'
+      + maxField
+      + '</div>'
+      + '<div class="field"><label>Hinweistext</label><textarea id="vt-' + i + '-info" style="height:56px;resize:vertical;">' + esc(t.info || '') + '</textarea></div>'
+      + '</div>';
+  }).join('');
+}
+
+async function saveVergabe() {
+  const base = window.VERGABE_TIERS || [];
+  const tiers = base.map((t, i) => {
+    const labelEl = document.getElementById('vt-' + i + '-label');
+    const infoEl = document.getElementById('vt-' + i + '-info');
+    const maxEl = document.getElementById('vt-' + i + '-max');
+    return {
+      key: t.key,
+      label: (labelEl ? labelEl.value : t.label).trim(),
+      max: (t.max == null) ? null : parseInt(maxEl ? maxEl.value : t.max, 10),
+      info: (infoEl ? infoEl.value : (t.info || '')).trim(),
+    };
+  });
+  let prev = 0;
+  for (const tier of tiers) {
+    if (!tier.label) { showToast('Bezeichnung darf nicht leer sein.'); return; }
+    if (tier.max != null) {
+      if (!Number.isFinite(tier.max) || tier.max <= prev) {
+        showToast('Grenzwerte müssen größer als 0 und aufsteigend sein.'); return;
+      }
+      prev = tier.max;
+    }
+  }
+  const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({vergabe_tiers: tiers})});
+  if (r.ok) {
+    window.VERGABE_TIERS = tiers;
+    renderVergabeEditor(tiers);
+    renderSchwelleLegend();
+    renderVergabeDropdowns();
+    if (document.getElementById('view-list').style.display !== 'none') renderList();
+    showToast('Vergabe-Schwellen gespeichert.');
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast(e.error || 'Fehler beim Speichern.');
+  }
+}
+
+async function resetVergabe() {
+  if (!await showConfirm('Vergabe-Schwellen auf Standard zurücksetzen? Eigene Änderungen gehen verloren.', {label: 'Zurücksetzen', title: 'Zurücksetzen'})) return;
+  const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({vergabe_tiers: null})});
+  if (!r.ok) { showToast('Fehler beim Zurücksetzen.'); return; }
+  const sr = await fetch('/api/settings');
+  if (sr.ok) {
+    const d = await sr.json();
+    if (Array.isArray(d.vergabe_tiers)) window.VERGABE_TIERS = d.vergabe_tiers;
+  }
+  renderVergabeEditor(window.VERGABE_TIERS);
+  renderSchwelleLegend();
+  renderVergabeDropdowns();
+  if (document.getElementById('view-list').style.display !== 'none') renderList();
+  showToast('Standard-Schwellen wiederhergestellt.');
+}
+
+async function saveSmtp() {
+  const payload = {
+    smtp_host: document.getElementById('st-host').value.trim(),
+    smtp_port: document.getElementById('st-port').value.trim(),
+    smtp_user: document.getElementById('st-user').value.trim(),
+    smtp_password: document.getElementById('st-pass').value,
+    smtp_from: document.getElementById('st-from').value.trim(),
+    smtp_tls: document.getElementById('st-tls').checked ? 'true' : 'false',
+  };
+  const r = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+  if (r.ok) { showToast('SMTP-Einstellungen gespeichert.'); document.getElementById('st-pass').value = ''; }
+  else showToast('Fehler beim Speichern.');
+}
+
+async function saveEmailTemplate() {
+  const payload = {
+    email_subject: document.getElementById('st-subject').value,
+    email_body: document.getElementById('st-body').value,
+  };
+  const r = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+  if (r.ok) showToast('Vorlage gespeichert.');
+  else showToast('Fehler beim Speichern.');
+}
+
+async function resetEmailTemplate() {
+  if (!await showConfirm('E-Mail-Vorlage auf Standard zurücksetzen? Eigene Änderungen gehen verloren.', {label: 'Zurücksetzen', title: 'Zurücksetzen'})) return;
+  const r = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email_subject: '', email_body: ''}),
+  });
+  if (r.ok) {
+    showToast('Standard-Vorlage wiederhergestellt.');
+    loadSettingsTab();
+  }
+}
+
+// ══════════════════ IMAP ══════════════════
+function _loadImapFields(d) {
+  document.getElementById('imap-enabled').checked = (d.imap_enabled === 'true');
+  document.getElementById('imap-host').value = d.imap_host || '';
+  document.getElementById('imap-port').value = d.imap_port || '993';
+  document.getElementById('imap-user').value = d.imap_user || '';
+  document.getElementById('imap-pass').placeholder = d.imap_password ? '●●●●●● (leer lassen = unverändert)' : 'Passwort eingeben';
+  document.getElementById('imap-folder').value = d.imap_folder || 'INBOX';
+  document.getElementById('imap-interval').value = d.imap_interval || '15';
+  document.getElementById('imap-ssl').checked = (d.imap_ssl || 'true') !== 'false';
+}
+
+async function saveImap() {
+  const payload = {
+    imap_enabled: document.getElementById('imap-enabled').checked ? 'true' : 'false',
+    imap_host: document.getElementById('imap-host').value.trim(),
+    imap_port: document.getElementById('imap-port').value.trim(),
+    imap_user: document.getElementById('imap-user').value.trim(),
+    imap_password: document.getElementById('imap-pass').value,
+    imap_folder: document.getElementById('imap-folder').value.trim() || 'INBOX',
+    imap_interval: document.getElementById('imap-interval').value.trim() || '15',
+    imap_ssl: document.getElementById('imap-ssl').checked ? 'true' : 'false',
+  };
+  const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+  if (r.ok) { showToast('IMAP-Einstellungen gespeichert.'); document.getElementById('imap-pass').value = ''; }
+  else showToast('Fehler beim Speichern.');
+}
+
+async function pollImapNow() {
+  const btn = document.getElementById('imap-poll-btn');
+  const result = document.getElementById('imap-poll-result');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2"></i> Wird abgerufen…';
+  result.style.display = 'none';
+  const r = await fetch('/api/imap/poll', {method: 'POST'});
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-refresh"></i> Jetzt abrufen';
+  const d = await r.json().catch(() => ({}));
+  result.style.display = '';
+  if (r.ok && !d.error) {
+    if (d.skipped) {
+      result.style.background = '#fef3e0';
+      result.textContent = 'IMAP deaktiviert oder nicht konfiguriert.';
+    } else {
+      result.style.background = '#eaf3de';
+      result.textContent = `✓ ${d.checked} E-Mail(s) geprüft, ${d.imported} neues Angebot importiert.`;
+    }
+  } else {
+    result.style.background = '#fde8e6';
+    result.textContent = 'Fehler: ' + (d.error || 'Verbindung fehlgeschlagen');
+  }
+}
+
+// ══════════════════ BENUTZER ══════════════════
+async function loadUsersTab() {
+  const r = await fetch('/api/users');
+  if (!r.ok) return;
+  const users = await r.json();
+  const tbody = document.getElementById('benutzer-tbody');
+  tbody.innerHTML = '';
+  users.forEach(u => {
+    const isMe = currentUser && u.id === currentUser.id;
+    const badgeCls = u.role === 'admin' ? 'badge-admin' : u.role === 'beschaffer' ? 'badge-beschaffer' : 'badge-user';
+    const badgeLbl = u.role === 'admin' ? 'Admin' : u.role === 'beschaffer' ? 'Beschaffer' : 'Betrachter';
+    const roleCell = isMe
+      ? '<span class="' + badgeCls + '">' + badgeLbl + '</span> <span style="font-size:11px;color:var(--text2);">(eigene Rolle)</span>'
+      : '<select onchange="changeUserRole(' + u.id + ', this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);">'
+          + '<option value="betrachter"' + (u.role === 'betrachter' ? ' selected' : '') + '>Betrachter</option>'
+          + '<option value="beschaffer"' + (u.role === 'beschaffer' ? ' selected' : '') + '>Beschaffer</option>'
+          + '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin</option>'
+        + '</select>';
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td data-label="Benutzername" style="font-weight:500;">' + u.username + (isMe ? ' <span style="font-size:11px;color:var(--text2);">(du)</span>' : '') + '</td>'
+      + '<td data-label="Rolle">' + roleCell + '</td>'
+      + '<td data-label="E-Mail"><input type="email" value="' + esc(u.email || '') + '" placeholder="keine" onchange="changeUserEmail(' + u.id + ', this.value)" style="font-size:12px;padding:5px 8px;width:100%;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);"></td>'
+      + '<td data-label="Info" style="text-align:center;"><input type="checkbox"' + (u.notify ? ' checked' : '') + ' onchange="changeUserNotify(' + u.id + ', this.checked)" style="width:16px;height:16px;accent-color:var(--ff-blue);cursor:pointer;"></td>'
+      + '<td data-label="Angelegt am" style="font-size:12px;color:var(--text2);">' + (u.created_at || '—') + '</td>'
+      + '<td data-label="">' + (isMe ? '' : '<button class="btn-danger" onclick="deleteUser(' + u.id + ')"><i class="ti ti-trash"></i></button>') + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+async function changeUserRole(id, role) {
+  const r = await fetch('/api/users/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({role}),
+  });
+  if (r.ok) {
+    showToast('Rolle aktualisiert.');
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast('Fehler: ' + (e.error || ''));
+  }
+  loadUsersTab();
+}
+
+async function changeUserEmail(id, email) {
+  const r = await fetch('/api/users/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: email.trim()}),
+  });
+  if (r.ok) showToast('E-Mail gespeichert.');
+  else { const e = await r.json().catch(() => ({})); showToast('Fehler: ' + (e.error || '')); loadUsersTab(); }
+}
+
+async function changeUserNotify(id, notify) {
+  const r = await fetch('/api/users/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({notify: notify}),
+  });
+  if (r.ok) showToast(notify ? 'Benachrichtigung aktiviert.' : 'Benachrichtigung deaktiviert.');
+  else { const e = await r.json().catch(() => ({})); showToast('Fehler: ' + (e.error || '')); loadUsersTab(); }
+}
+
+async function addUser() {
+  const username = document.getElementById('nu-name').value.trim();
+  const password = document.getElementById('nu-pass').value;
+  const role = document.getElementById('nu-role').value;
+  const email = document.getElementById('nu-email').value.trim();
+  const notify = document.getElementById('nu-notify').checked;
+  if (!username || password.length < 6) { showToast('Benutzername und Passwort (min. 6 Zeichen) erforderlich.'); return; }
+  if (!email || !email.includes('@')) { showToast('Gültige E-Mail-Adresse erforderlich.'); return; }
+  const r = await fetch('/api/users', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username, password, role, email, notify}),
+  });
+  if (r.ok) {
+    document.getElementById('nu-name').value = '';
+    document.getElementById('nu-pass').value = '';
+    document.getElementById('nu-role').value = 'betrachter';
+    document.getElementById('nu-email').value = '';
+    document.getElementById('nu-notify').checked = true;
+    showToast('Benutzer angelegt.');
+    loadUsersTab();
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast('Fehler: ' + (e.error || ''));
+  }
+}
+
+async function deleteUser(id) {
+  if (!await showConfirm('Benutzer wirklich löschen?', {label: 'Löschen', title: 'Löschen'})) return;
+  const r = await fetch('/api/users/' + id, {method: 'DELETE'});
+  if (r.ok) { showToast('Benutzer entfernt.'); loadUsersTab(); }
+  else { const e = await r.json().catch(() => ({})); showToast('Fehler: ' + (e.error || '')); }
+}
+
+// ══════════════════ ANGEBOT / EMAIL ══════════════════
+async function openAngebotModal(proposal) {
+  if (!currentUser || !proposal) return;
+  currentAngebotProposal = proposal;
+  const r = await fetch('/api/suppliers');
+  if (!r.ok) { showToast('Lieferanten konnten nicht geladen werden.'); return; }
+  modalSuppliers = await r.json();
+  const bez = proposal.bezeichnung || '—';
+  const her = proposal.hersteller || '';
+  const mod = proposal.modell || '';
+  const kat = proposal.kategorie || '—';
+  const kosten = proposal.kosten;
+  document.getElementById('produkt-preview').innerHTML =
+    '<div style="font-weight:600;color:var(--ff-blue);margin-bottom:7px;font-size:13px;"><i class="ti ti-package"></i> '
+    + bez + (her ? ' · ' + her : '') + (mod ? ' ' + mod : '') + '</div>'
+    + '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;"><span><span style="color:var(--text2);">Nr.:</span> ' + proposal.nr + '</span><span><span style="color:var(--text2);">Kategorie:</span> ' + kat + '</span>'
+    + (kosten ? '<span><span style="color:var(--text2);">Kosten:</span> ' + parseFloat(kosten).toLocaleString('de-DE') + ' € netto</span>' : '')
+    + '</div>';
+  const liste = document.getElementById('lieferanten-liste');
+  liste.innerHTML = '';
+  modalSuppliers.forEach(l => {
+    const card = document.createElement('div');
+    card.className = 'lieferant-card';
+    card.id = 'card-' + l.id;
+    card.innerHTML = '<label><input type="checkbox" id="chk-' + l.id + '" onchange="toggleCard(' + l.id + ')">'
+      + '<div><div class="lieferant-name">' + l.name + (l.test ? '<span class="test-badge">Test</span>' : '') + '</div>'
+      + '<div class="lieferant-detail"><i class="ti ti-user" style="font-size:11px;"></i> ' + (l.ansprechpartner || l.name)
+      + (l.tel ? ' · <i class="ti ti-phone" style="font-size:11px;"></i> ' + l.tel : '')
+      + '<br><i class="ti ti-mail" style="font-size:11px;"></i> ' + l.email + '</div></div></label>';
+    liste.appendChild(card);
+  });
+  const btn = document.getElementById('btn-send-angebot');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-send"></i> Anfrage(n) senden';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function toggleCard(id) {
+  const c = document.getElementById('chk-' + id);
+  document.getElementById('card-' + id).classList.toggle('selected', c.checked);
+}
+
+function closeAngebotModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+async function sendAngebote() {
+  const selected = modalSuppliers.filter(l => document.getElementById('chk-' + l.id)?.checked);
+  if (!selected.length) { showToast('Bitte mind. einen Lieferanten auswählen.'); return; }
+  const btn = document.getElementById('btn-send-angebot');
+  btn.disabled = true;
+  btn.textContent = 'Wird gesendet…';
+  const payload = {
+    recipientIds: selected.map(l => l.id),
+    bezeichnung: currentAngebotProposal.bezeichnung || '',
+    hersteller: currentAngebotProposal.hersteller || '',
+    modell: currentAngebotProposal.modell || '',
+    kategorie: currentAngebotProposal.kategorie || '',
+    kosten: currentAngebotProposal.kosten || null,
+    nr: currentAngebotProposal.nr || '',
+  };
+  try {
+    const r = await fetch('/api/email/send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (r.ok || r.status === 207) {
+      showToast(d.sent + ' E-Mail(s) erfolgreich versendet.');
+      closeAngebotModal();
+    } else {
+      showToast('Fehler: ' + (d.error || 'E-Mail-Versand fehlgeschlagen'));
+    }
+  } catch {
+    showToast('Netzwerkfehler beim E-Mail-Versand.');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-send"></i> Anfrage(n) senden';
+}
+
+// ══════════════════ VERGABE ══════════════════
+// Farben/Icons je Stufe sind fest (nicht editierbar); Grenzen/Labels/Texte kommen aus window.VERGABE_TIERS.
+const VERGABE_STYLE = {
+  direkt:      {cls:'vb-direkt',      icon:'ti-circle-check', icls:'vi-direkt',      dot:'#3b6d11'},
+  beschraenkt: {cls:'vb-beschraenkt', icon:'ti-users',        icls:'vi-beschraenkt', dot:'#185fa5'},
+  oeffentlich: {cls:'vb-oeffentlich', icon:'ti-speakerphone', icls:'vi-oeffentlich', dot:'#854f0b'},
+  europa:      {cls:'vb-europa',      icon:'ti-world',        icls:'vi-europa',      dot:'#a32d2d'},
+};
+
+function getVergabe(k) {
+  const tiers = window.VERGABE_TIERS || [];
+  const tier = tiers.find(t => t.max == null || k <= t.max) || tiers[tiers.length - 1] || {};
+  const s = VERGABE_STYLE[tier.key] || {};
+  return {key:tier.key, label:tier.label, info:tier.info, cls:s.cls, icon:s.icon, icls:s.icls};
+}
+
+function fmtEuro(n) { return Number(n || 0).toLocaleString('de-DE') + ' €'; }
+
+function renderSchwelleLegend() {
+  const el = document.getElementById('schwelle-legend');
+  if (!el) return;
+  const tiers = window.VERGABE_TIERS || [];
+  let html = '<span style="font-size:11px;font-weight:600;color:var(--text2);margin-right:4px;">Vergabe:</span>';
+  tiers.forEach((t, i) => {
+    const s = VERGABE_STYLE[t.key] || {};
+    const bound = (t.max == null)
+      ? '&gt; ' + fmtEuro(tiers[i-1] ? tiers[i-1].max : 0)
+      : '≤ ' + fmtEuro(t.max);
+    html += '<span class="sl-item"><span class="sl-dot" style="background:' + (s.dot || '#888') + ';"></span>' + esc(t.label) + ' ' + bound + '</span>';
+  });
+  el.innerHTML = html;
+}
+
+function renderVergabeDropdowns() {
+  const tiers = window.VERGABE_TIERS || [];
+  const fv = document.getElementById('filter-vergabe');
+  if (fv) {
+    const cur = fv.value;
+    fv.innerHTML = '<option value="">Alle Vergabearten</option>' + tiers.map(t => '<option>' + esc(t.label) + '</option>').join('');
+    fv.value = cur;
+  }
+  const ba = document.getElementById('dm-beschaffungsart');
+  if (ba) {
+    const cur = ba.value;
+    ba.innerHTML = '<option value="">— bitte wählen —</option>'
+      + tiers.map(t => '<option>' + esc(t.label) + '</option>').join('')
+      + '<option>Angebotsverfahren</option><option>Rahmenvertrag</option>';
+    ba.value = cur;
+  }
+}
+
+function updateDetailVergabe() {
+  const k = parseFloat(document.getElementById('dm-kosten').value) || 0;
+  const box = document.getElementById('detail-vergabe-hinweis'), rb = document.getElementById('detail-rechts-basis');
+  if (k <= 0) { box.className = 'vergabe-info-box'; rb.style.display = 'none'; return; }
+  const v = getVergabe(k);
+  box.className = 'vergabe-info-box show ' + v.icls;
+  document.getElementById('detail-vergabe-icon').className = 'ti ' + v.icon + ' vergabe-icon';
+  document.getElementById('detail-vergabe-title').textContent = v.label;
+  document.getElementById('detail-vergabe-text').textContent = v.info;
+  rb.style.display = 'block';
+  if (!document.getElementById('dm-beschaffungsart').value) {
+    document.getElementById('dm-beschaffungsart').value = v.label;
+  }
+}
+
+// ══════════════════ DETAIL MODAL ══════════════════
+function openDetailModal(proposal) {
+  if (!proposal) return;
+  currentDetailProposal = Object.assign({}, proposal);
+  document.getElementById('dm-nr').textContent = 'Nr.: ' + proposal.nr;
+  document.getElementById('dm-title').textContent = proposal.bezeichnung;
+  document.getElementById('dm-datum').textContent = proposal.created_at || '—';
+  const einreicherBox = document.getElementById('dm-einreicher-box');
+  if (proposal.einreicher_name) {
+    document.getElementById('dm-einreicher-name').textContent = proposal.einreicher_name;
+    document.getElementById('dm-einreicher-email').textContent = proposal.einreicher_email || '';
+    document.getElementById('dm-einreicher-tel').textContent = proposal.einreicher_tel ? '☎ ' + proposal.einreicher_tel : '';
+    einreicherBox.style.display = '';
+  } else {
+    einreicherBox.style.display = 'none';
+  }
+  document.getElementById('dm-bezeichnung').textContent = proposal.bezeichnung || '—';
+  document.getElementById('dm-hm').textContent = [proposal.hersteller, proposal.modell].filter(Boolean).join(' / ') || '—';
+  document.getElementById('dm-kategorie').textContent = proposal.kategorie || '—';
+  document.getElementById('dm-anlass').textContent = proposal.anlass || '—';
+  document.getElementById('dm-sachverhalt').textContent = proposal.sachverhalt || '—';
+  document.getElementById('dm-risiken').textContent = proposal.risiken || '—';
+  document.getElementById('dm-kosten-anzeige').textContent = (proposal.kosten || 0).toLocaleString('de-DE') + ' € netto (Schätzung)';
+  document.getElementById('dm-prio').innerHTML = proposal.prioritaet && proposal.prioritaet !== '—'
+    ? '<span class="prio-badge ' + prioClass(proposal.prioritaet) + '">' + proposal.prioritaet + '</span>' : '—';
+  document.getElementById('dm-foerderung').textContent = proposal.foerderung || '—';
+  const filesEl = document.getElementById('dm-files');
+  if (proposal.files && proposal.files.length) {
+    filesEl.innerHTML = proposal.files.map(f =>
+      '<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px;">'
+      + '<i class="ti ti-file-type-pdf" style="color:var(--ff-red);flex-shrink:0;"></i>'
+      + '<a href="/api/uploads/' + encodeURIComponent(f.path) + '" target="_blank" rel="noopener" style="color:var(--ff-blue);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + f.name + '">' + f.name + '</a>'
+      + '<span style="color:var(--text2);flex-shrink:0;">(' + (f.size/1024).toFixed(0) + ' KB)</span>'
+      + '<a href="/api/uploads/' + encodeURIComponent(f.path) + '" target="_blank" rel="noopener" title="Öffnen" style="color:var(--text2);line-height:1;"><i class="ti ti-external-link" style="font-size:13px;"></i></a>'
+      + '</div>'
+    ).join('');
+  } else { filesEl.textContent = '—'; }
+  document.getElementById('dm-kosten').value = proposal.kosten || '';
+  document.getElementById('dm-beschaffungsart').value = proposal.beschaffungsart || '';
+  document.getElementById('dm-notizen').value = proposal.notizen || '';
+  document.querySelectorAll('#dm-ablauf-chips .ablauf-chip').forEach(c => {
+    c.classList.toggle('active', Array.isArray(proposal.ablauf) && proposal.ablauf.includes(c.dataset.val));
+  });
+  updateDetailVergabe();
+
+  // Populate Stückzahl fields
+  document.getElementById('dm-menge').value = proposal.menge || 1;
+  document.getElementById('dm-stueckpreis').value = proposal.stueckpreis_geschaetzt || '';
+  updateGesamtpreis();
+
+  // Show/hide beschaffer-only elements
+  const isBes = isBeschaffer();
+  document.getElementById('dm-add-alt-btn').style.display = isBes ? '' : 'none';
+  document.getElementById('dm-add-quote-btn').style.display = isBes ? '' : 'none';
+
+  // Load alternatives and quotes asynchronously
+  loadAlternatives(proposal.nr).then(alts => {
+    renderAlternatives(alts);
+    refreshQuoteAlternativeSelect(alts);
+  });
+  loadQuotes(proposal.nr).then(quotes => renderQuotes(quotes));
+
+  // Reset alt add form
+  closeAddAltForm();
+
+  document.getElementById('detail-modal-overlay').classList.add('show');
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal-overlay').classList.remove('show');
+  currentDetailProposal = null;
+}
+
+// ══════════════════ STÜCKZAHL ══════════════════
+function updateGesamtpreis() {
+  const menge = parseInt(document.getElementById('dm-menge').value) || 0;
+  const preis = parseFloat(document.getElementById('dm-stueckpreis').value) || 0;
+  const disp = document.getElementById('dm-gesamtpreis-display');
+  if (menge > 0 && preis > 0) {
+    document.getElementById('dm-gesamtpreis-val').textContent = (menge * preis).toLocaleString('de-DE', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+    disp.style.display = '';
+  } else {
+    disp.style.display = 'none';
+  }
+}
+
+// ══════════════════ ALTERNATIVEN ══════════════════
+async function loadAlternatives(nr) {
+  const r = await fetch('/api/proposals/' + encodeURIComponent(nr) + '/alternatives');
+  if (!r.ok) return [];
+  return await r.json();
+}
+
+function renderAlternatives(alts) {
+  const el = document.getElementById('dm-alternatives-list');
+  if (!alts || !alts.length) { el.innerHTML = '<span style="color:var(--text2);">Keine Alternativpositionen.</span>'; return; }
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;">'
+    + '<thead><tr><th style="text-align:left;padding:4px 8px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);">Hersteller</th>'
+    + '<th style="text-align:left;padding:4px 8px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);">Modell</th>'
+    + '<th style="text-align:left;padding:4px 8px;background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);">Notiz</th>'
+    + (isBeschaffer() ? '<th style="width:40px;background:var(--bg2);"></th>' : '')
+    + '</tr></thead><tbody>'
+    + alts.map(a => '<tr>'
+        + '<td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(a.hersteller) + '</td>'
+        + '<td style="padding:4px 8px;border-bottom:1px solid var(--border);">' + esc(a.modell) + '</td>'
+        + '<td style="padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text2);">' + esc(a.notiz || '—') + '</td>'
+        + (isBeschaffer() ? '<td style="padding:4px 8px;border-bottom:1px solid var(--border);"><button class="btn-danger" style="padding:2px 6px;font-size:11px;" onclick="deleteAlternative(' + a.id + ')"><i class="ti ti-trash"></i></button></td>' : '')
+        + '</tr>').join('')
+    + '</tbody></table>';
+}
+
+function openAddAltForm() {
+  document.getElementById('dm-add-alt-form').style.display = '';
+  document.getElementById('dm-alt-hersteller').focus();
+}
+function closeAddAltForm() {
+  document.getElementById('dm-add-alt-form').style.display = 'none';
+  ['dm-alt-hersteller','dm-alt-modell','dm-alt-notiz'].forEach(id => document.getElementById(id).value = '');
+}
+
+async function saveAlternative() {
+  if (!currentDetailProposal) return;
+  const hersteller = document.getElementById('dm-alt-hersteller').value.trim();
+  const modell = document.getElementById('dm-alt-modell').value.trim();
+  if (!hersteller || !modell) { showToast('Hersteller und Modell sind Pflichtfelder.'); return; }
+  const r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr) + '/alternatives', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({hersteller, modell, notiz: document.getElementById('dm-alt-notiz').value.trim()}),
+  });
+  if (r.ok) {
+    closeAddAltForm();
+    const alts = await loadAlternatives(currentDetailProposal.nr);
+    renderAlternatives(alts);
+    await refreshQuoteAlternativeSelect(alts);
+    showToast('Alternative gespeichert.');
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast('Fehler: ' + (e.error || 'Unbekannt'));
+  }
+}
+
+async function deleteAlternative(altId) {
+  if (!currentDetailProposal || !await showConfirm('Alternative löschen?', {label: 'Löschen', title: 'Löschen'})) return;
+  const r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr) + '/alternatives/' + altId, {method: 'DELETE'});
+  if (r.ok) {
+    const alts = await loadAlternatives(currentDetailProposal.nr);
+    renderAlternatives(alts);
+    await refreshQuoteAlternativeSelect(alts);
+    showToast('Alternative gelöscht.');
+  } else showToast('Fehler beim Löschen.');
+}
+
+// ══════════════════ ANGEBOTE (QUOTES) ══════════════════
+async function loadQuotes(nr) {
+  const r = await fetch('/api/proposals/' + encodeURIComponent(nr) + '/quotes');
+  if (!r.ok) return [];
+  return await r.json();
+}
+
+function renderQuotes(quotes) {
+  const el = document.getElementById('dm-quotes-list');
+  if (!quotes || !quotes.length) { el.innerHTML = '<span style="color:var(--text2);">Keine Angebote erfasst.</span>'; return; }
+  const menge = parseInt(document.getElementById('dm-menge').value) || (currentDetailProposal ? currentDetailProposal.menge || 1 : 1);
+  const realQuotes = quotes.filter(q => q.preis_stueck > 0);
+  const minPreis = realQuotes.length ? Math.min(...realQuotes.map(q => q.preis_stueck)) : null;
+  el.innerHTML = '<table class="quote-table"><thead><tr>'
+    + '<th>Händler</th><th>Alternative</th><th style="text-align:right;">Stückpreis</th><th style="text-align:right;">Gesamt ('+ menge +' St.)</th><th>Lieferzeit</th><th>Dateien</th>'
+    + (isBeschaffer() ? '<th style="width:56px;"></th>' : '')
+    + '</tr></thead><tbody>'
+    + quotes.map(q => {
+        const isEmail = q.source === 'email';
+        const needsPrice = isEmail && q.preis_stueck === 0;
+        const isBest = !needsPrice && minPreis !== null && q.preis_stueck === minPreis;
+        const supplierCell = esc(q.supplier_name || (isEmail ? esc(q.sender_email) : '—'))
+          + (isEmail ? ' <span class="alt-tag" style="background:#e6f1fb;">📧 E-Mail</span>' : '')
+          + (isBest ? ' <span title="Günstigstes Angebot">⭐</span>' : '');
+        const preisCell = needsPrice
+          ? '<span style="color:#a32d2d;font-size:11px;">Preis fehlt</span>'
+          : (q.preis_stueck || 0).toLocaleString('de-DE', {minimumFractionDigits:2}) + ' €';
+        const gesamtCell = needsPrice ? '—'
+          : (q.preis_stueck * menge).toLocaleString('de-DE', {minimumFractionDigits:2}) + ' €';
+        const pdfCell = q.filepath
+          ? '<a href="/api/uploads/' + encodeURIComponent(q.filepath) + '" target="_blank" style="color:var(--ff-blue);font-size:13px;" title="PDF öffnen"><i class="ti ti-file-type-pdf"></i></a>'
+          : '';
+        const mailCell = q.eml_path
+          ? '<a href="#" onclick="openEmailModal(' + q.id + ');return false;" style="color:var(--ff-blue);font-size:13px;margin-left:8px;" title="Original-E-Mail anzeigen"><i class="ti ti-mail"></i></a>'
+          : '';
+        const dateiCell = (pdfCell || mailCell) ? (pdfCell + mailCell) : '—';
+        const actionCell = isBeschaffer()
+          ? '<td data-label="" style="white-space:nowrap;">'
+            + (needsPrice ? '<button class="btn-secondary" style="padding:2px 6px;font-size:11px;margin-right:3px;" onclick="enterQuotePrice(' + q.id + ')" title="Preis eintragen"><i class="ti ti-pencil"></i></button>' : '')
+            + '<button class="btn-danger" style="padding:2px 6px;font-size:11px;" onclick="deleteQuote(' + q.id + ')"><i class="ti ti-trash"></i></button>'
+            + '</td>'
+          : '';
+        return '<tr class="' + (isBest ? 'best-quote' : '') + (needsPrice ? '" style="background:#fff8f8;' : '') + '">'
+          + '<td data-label="Händler">' + supplierCell + '</td>'
+          + '<td data-label="Alternative">' + (q.alternative_id ? '<span class="alt-tag">Alt.</span>' : '—') + '</td>'
+          + '<td data-label="Stückpreis" style="text-align:right;">' + preisCell + '</td>'
+          + '<td data-label="Gesamt" style="text-align:right;">' + gesamtCell + '</td>'
+          + '<td data-label="Lieferzeit" style="color:var(--text2);">' + esc(q.lieferzeit || '—') + '</td>'
+          + '<td data-label="Dateien" style="white-space:nowrap;">' + dateiCell + '</td>'
+          + actionCell
+          + '</tr>';
+      }).join('')
+    + '</tbody></table>';
+}
+
+async function enterQuotePrice(quoteId) {
+  const val = await showInputModal('Stückpreis (€ netto)', 'Preis nachtragen');
+  if (val === null) return;
+  const preis = parseFloat(val);
+  if (!preis || preis <= 0) { showToast('Bitte gültigen Preis eingeben.'); return; }
+  const r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr) + '/quotes/' + quoteId, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({preis_stueck: preis}),
+  });
+  if (r.ok) {
+    const quotes = await loadQuotes(currentDetailProposal.nr);
+    renderQuotes(quotes);
+    showToast('Preis gespeichert.');
+  } else showToast('Fehler beim Speichern.');
+}
+
+function openQuoteModal() {
+  if (!currentDetailProposal) return;
+  // Populate supplier dropdown
+  fetch('/api/suppliers').then(r => r.json()).then(suppliers => {
+    const sel = document.getElementById('qm-supplier');
+    sel.innerHTML = suppliers.filter(s => !s.test).map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>').join('');
+  });
+  // Load and populate alternatives dropdown
+  loadAlternatives(currentDetailProposal.nr).then(alts => refreshQuoteAlternativeSelect(alts));
+  document.getElementById('qm-preis').value = '';
+  document.getElementById('qm-lieferzeit').value = '';
+  document.getElementById('qm-notizen').value = '';
+  document.getElementById('qm-pdf').value = '';
+  document.getElementById('quote-modal-overlay').classList.add('show');
+}
+
+async function refreshQuoteAlternativeSelect(alts) {
+  const sel = document.getElementById('qm-alternative');
+  sel.innerHTML = '<option value="">— Hauptposition —</option>'
+    + (alts || []).map(a => '<option value="' + a.id + '">' + esc(a.hersteller) + ' ' + esc(a.modell) + '</option>').join('');
+}
+
+function closeQuoteModal() {
+  document.getElementById('quote-modal-overlay').classList.remove('show');
+}
+
+function openEmailModal(quoteId) {
+  document.getElementById('email-modal-frame').src = '/api/quotes/' + quoteId + '/email';
+  document.getElementById('email-modal-overlay').classList.add('show');
+}
+
+function closeEmailModal() {
+  document.getElementById('email-modal-overlay').classList.remove('show');
+  document.getElementById('email-modal-frame').src = 'about:blank';
+}
+
+async function saveQuote() {
+  if (!currentDetailProposal) return;
+  const supplierId = document.getElementById('qm-supplier').value;
+  if (!supplierId) { showToast('Bitte Lieferanten auswählen.'); return; }
+  const preis = parseFloat(document.getElementById('qm-preis').value);
+  if (!preis || preis <= 0) { showToast('Bitte gültigen Preis eingeben.'); return; }
+  const btn = document.getElementById('qm-save-btn');
+  btn.disabled = true;
+  const formData = new FormData();
+  formData.append('supplier_id', supplierId);
+  const altId = document.getElementById('qm-alternative').value;
+  if (altId) formData.append('alternative_id', altId);
+  formData.append('preis_stueck', preis);
+  formData.append('lieferzeit', document.getElementById('qm-lieferzeit').value.trim());
+  formData.append('notizen', document.getElementById('qm-notizen').value.trim());
+  const pdf = document.getElementById('qm-pdf').files[0];
+  if (pdf) formData.append('pdf', pdf);
+  let r;
+  try {
+    r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr) + '/quotes', {method: 'POST', body: formData});
+  } finally {
+    btn.disabled = false;
+  }
+  if (r && r.ok) {
+    closeQuoteModal();
+    const quotes = await loadQuotes(currentDetailProposal.nr);
+    renderQuotes(quotes);
+    showToast('Angebot gespeichert.');
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast('Fehler: ' + (e.error || 'Unbekannt'));
+  }
+}
+
+async function deleteQuote(quoteId) {
+  if (!currentDetailProposal || !await showConfirm('Angebot löschen?', {label: 'Löschen', title: 'Löschen'})) return;
+  const r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr) + '/quotes/' + quoteId, {method: 'DELETE'});
+  if (r.ok) {
+    const quotes = await loadQuotes(currentDetailProposal.nr);
+    renderQuotes(quotes);
+    showToast('Angebot gelöscht.');
+  } else showToast('Fehler beim Löschen.');
+}
+
+function getDetailAblauf() {
+  return [...document.querySelectorAll('#dm-ablauf-chips .ablauf-chip.active')].map(c => c.dataset.val);
+}
+
+async function saveDetail() {
+  if (!currentDetailProposal) return;
+  const btn = document.getElementById('dm-save-btn');
+  btn.disabled = true; btn.textContent = 'Speichern…';
+  const payload = {
+    kosten: parseFloat(document.getElementById('dm-kosten').value) || currentDetailProposal.kosten,
+    beschaffungsart: document.getElementById('dm-beschaffungsart').value,
+    ablauf: getDetailAblauf(),
+    notizen: document.getElementById('dm-notizen').value,
+    menge: parseInt(document.getElementById('dm-menge').value) || 1,
+    stueckpreis_geschaetzt: parseFloat(document.getElementById('dm-stueckpreis').value) || null,
+  };
+  try {
+    const r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr), {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    if (r.ok) {
+      const updated = await r.json();
+      const idx = proposals.findIndex(p => p.nr === updated.nr);
+      if (idx >= 0) proposals[idx] = updated;
+      currentDetailProposal = updated;
+      renderList();
+      showToast('Gespeichert.');
+    } else { showToast('Fehler beim Speichern.'); }
+  } catch { showToast('Netzwerkfehler.'); }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-device-floppy"></i> Speichern';
+}
+
+function openAngebotFromDetail() {
+  if (currentDetailProposal) {
+    const merged = Object.assign({}, currentDetailProposal, {
+      kosten: parseFloat(document.getElementById('dm-kosten').value) || currentDetailProposal.kosten,
+    });
+    openAngebotModal(merged);
+  }
+}
+
+function printProposal() {
+  if (!currentDetailProposal) return;
+  const p = currentDetailProposal;
+  const k = parseFloat(document.getElementById('dm-kosten').value) || p.kosten || 0;
+  const v = getVergabe(k);
+  const ablauf = getDetailAblauf();
+  const notizen = document.getElementById('dm-notizen').value;
+  const beschaffungsart = document.getElementById('dm-beschaffungsart').value || '—';
+  const hm = [p.hersteller, p.modell].filter(Boolean).join(' / ') || '—';
+  document.getElementById('print-content').innerHTML = `
+    <div class="print-header">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <img src="/static/logo.jpg" style="width:52px;height:52px;border-radius:50%;object-fit:contain;" />
+        <div><div style="font-size:18px;font-weight:700;">Freiwillige Feuerwehr Moorrege</div><div style="font-size:13px;color:#555;">Beschaffungsmanagement – Vorgangsübersicht</div></div>
+      </div>
+      <div style="text-align:right;font-size:12px;color:#555;">
+        <div style="font-size:16px;font-weight:700;color:#0785B7;">Nr. ${esc(p.nr)}</div>
+        <div>Eingegangen: ${esc(p.created_at || '—')}</div>
+        <div>Ausgedruckt: ${new Date().toLocaleDateString('de-DE')}</div>
+      </div>
+    </div>
+    <div style="height:3px;background:#E95146;margin:12px 0 16px;"></div>
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:10px;">${esc(p.bezeichnung)}</h2>
+    ${p.einreicher_name ? `<div style="background:#e6f1fb;border:1px solid #185fa5;border-radius:4px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#0c447c;"><strong>Einreicher:</strong> ${esc(p.einreicher_name)}${p.einreicher_email ? ' · ' + esc(p.einreicher_email) : ''}${p.einreicher_tel ? ' · ☎ ' + esc(p.einreicher_tel) : ''}</div>` : ''}
+    <table class="print-table">
+      <tr><td>Hersteller / Modell</td><td>${esc(hm)}</td></tr>
+      <tr><td>Kategorie</td><td>${esc(p.kategorie || '—')}</td></tr>
+      <tr><td>Anlass</td><td>${esc(p.anlass || '—')}</td></tr>
+      <tr><td>Fördermöglichkeiten</td><td>${esc(p.foerderung || '—')}</td></tr>
+      <tr><td>Priorität</td><td>${esc(p.prioritaet || '—')}</td></tr>
+    </table>
+    ${p.sachverhalt ? `<div class="print-section"><div class="print-label">Sachverhalt / Begründung</div><div class="print-text">${esc(p.sachverhalt).replace(/\n/g,'<br>')}</div></div>` : ''}
+    ${p.risiken ? `<div class="print-section"><div class="print-label">Risiken bei Nichtbeschaffung</div><div class="print-text">${esc(p.risiken).replace(/\n/g,'<br>')}</div></div>` : ''}
+    <div style="margin-top:18px;border:2px solid #0785B7;border-radius:6px;padding:14px;">
+      <div style="font-weight:700;color:#0785B7;margin-bottom:10px;font-size:13px;">Interne Beurteilung</div>
+      <table class="print-table">
+        <tr><td>Geschätzte Kosten</td><td>${k.toLocaleString('de-DE')} € netto</td></tr>
+        <tr><td>Vergabeverfahren (SHVgVO)</td><td>${v.label}</td></tr>
+        <tr><td>Beschaffungsart</td><td>${beschaffungsart}</td></tr>
+        <tr><td>Ablauf-Status</td><td>${ablauf.length ? ablauf.join(' → ') : '—'}</td></tr>
+      </table>
+      ${notizen ? `<div class="print-section" style="margin-top:10px;"><div class="print-label">Notizen / Empfehlung</div><div class="print-text">${notizen.replace(/\n/g,'<br>')}</div></div>` : ''}
+    </div>
+    <div style="margin-top:28px;border-top:1px solid #e0e4ea;padding-top:10px;display:flex;justify-content:space-between;font-size:11px;color:#888;">
+      <div>Freiwillige Feuerwehr Moorrege · Wedeler Ch. 67 · 25436 Moorrege · Wehrfuehrung@feuerwehr-moorrege.de</div>
+      <div>Rechtsgrundlage: SHVgVO i.d.F. 16.05.2026</div>
+    </div>`;
+  window.print();
+}
+
+// ══════════════════ FORM UTILITIES ══════════════════
+function clearError(f) { document.getElementById('f-'+f).classList.remove('error'); document.getElementById('err-'+f).classList.remove('show'); }
+
+function validateForm() {
+  let ok = true;
+  ['einreicher-name','bezeichnung','hersteller','modell'].forEach(f => {
+    const el = document.getElementById('f-' + f);
+    if (!el.value.trim()) { el.classList.add('error'); document.getElementById('err-' + f).classList.add('show'); ok = false; }
+  });
+  return ok;
+}
+
+function getSelectedKategorien() { return [...document.querySelectorAll('#cat-grid input:checked')].map(i => i.value); }
+
+function resetForm() {
+  ['einreicher-name','bezeichnung','hersteller','modell'].forEach(f => { const el = document.getElementById('f-'+f); el.value = ''; el.classList.remove('error'); document.getElementById('err-'+f).classList.remove('show'); });
+  ['f-einreicher-email','f-einreicher-tel'].forEach(id => { document.getElementById(id).value = ''; });
+  ['sachverhalt','risiken','kosten'].forEach(f => document.getElementById('f-'+f).value = '');
+  document.querySelectorAll('#cat-grid input,#anlass-grid input').forEach(i => i.checked = false);
+  ['kreis','land','verein','sonst'].forEach(k => document.getElementById('f-foerd-'+k).checked = false);
+  document.querySelectorAll('input[name=prioritaet]').forEach(r => r.checked = false);
+  attachedFiles = []; renderFileList();
+}
+
+function getProposalByNr(nr) { return proposals.find(p => p.nr === nr) || null; }
+function getChecked(id) { return [...document.querySelectorAll('#'+id+' input:checked')].map(i => i.value).join(', '); }
+function getFordering() { const v = ['kreis','land','verein','sonst'].filter(k => document.getElementById('f-foerd-'+k).checked).map(k => document.getElementById('f-foerd-'+k).value); return v.length ? v.join(', ') : 'keine'; }
+function toggleChip(el) { el.classList.toggle('active'); }
+
+// ══════════════════ FILE UPLOAD ══════════════════
+function handleFiles(files) {
+  for (const f of files) {
+    if (f.type !== 'application/pdf') { showToast('Nur PDF-Dateien erlaubt.'); continue; }
+    if (f.size > 10*1024*1024) { showToast(f.name + ': Datei zu groß (max. 10 MB)'); continue; }
+    if (!attachedFiles.find(x => x.name === f.name)) attachedFiles.push(f);
+  }
+  renderFileList();
+}
+
+function renderFileList() {
+  const el = document.getElementById('file-list'); el.innerHTML = '';
+  attachedFiles.forEach((f,i) => {
+    const d = document.createElement('div'); d.className = 'file-item';
+    d.innerHTML = '<i class="ti ti-file-type-pdf" style="color:var(--ff-red);font-size:20px;flex-shrink:0;"></i>'
+      + '<span class="file-name">'+f.name+'</span><span class="file-size">'+(f.size/1024).toFixed(0)+' KB</span>'
+      + '<button class="file-remove" onclick="removeFile('+i+')"><i class="ti ti-x"></i></button>';
+    el.appendChild(d);
+  });
+}
+
+function removeFile(i) { attachedFiles.splice(i,1); renderFileList(); }
+function dragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+function dragLeave() { document.getElementById('upload-zone').classList.remove('drag-over'); }
+function dropFiles(e) { e.preventDefault(); dragLeave(); handleFiles(e.dataTransfer.files); }
+
+// ══════════════════ LIST RENDERING ══════════════════
+function prioClass(p) { return p==='Hoch'?'prio-hoch':p==='Mittel'?'prio-mittel':'prio-niedrig'; }
+function ablaufDots(a) { return ABLAUF_ORDER.map(s => '<span class="ablauf-dot '+(Array.isArray(a)&&a.includes(s)?'done':'')+'" title="'+s+'"></span>').join(''); }
+
+function renderList() {
+  const txt = (document.getElementById('filter-text').value||'').toLowerCase();
+  const prio = document.getElementById('filter-prio').value;
+  const kat = document.getElementById('filter-kat').value;
+  const verg = document.getElementById('filter-vergabe').value;
+  const filtered = proposals.filter(d => {
+    const v = getVergabe(d.kosten);
+    return (!txt || (d.bezeichnung+' '+d.hersteller+' '+d.modell+' '+d.nr).toLowerCase().includes(txt))
+      && (!prio || d.prioritaet === prio)
+      && (!kat || (d.kategorie||'').includes(kat))
+      && (!verg || v.label === verg);
+  });
+  const total = filtered.reduce((s,d) => s + (d.kosten||0), 0);
+  document.getElementById('summary-bar').innerHTML =
+    '<div class="stat-card"><div class="stat-num">'+filtered.length+'</div><div class="stat-lbl">Einträge</div></div>'
+    +'<div class="stat-card"><div class="stat-num" style="color:#a32d2d">'+filtered.filter(d=>d.prioritaet==='Hoch').length+'</div><div class="stat-lbl">Hohe Priorität</div></div>'
+    +'<div class="stat-card"><div class="stat-num" style="color:#3b6d11">'+filtered.filter(d=>Array.isArray(d.ablauf)&&d.ablauf.includes('Beschafft')).length+'</div><div class="stat-lbl">Beschafft</div></div>'
+    +'<div class="stat-card"><div class="stat-num">'+total.toLocaleString('de-DE')+' €</div><div class="stat-lbl">Gesamtkosten</div></div>';
+  const body = document.getElementById('list-body'); body.innerHTML = '';
+  if (!filtered.length) {
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('gesamtkosten').textContent = '';
+  } else {
+    document.getElementById('empty-state').style.display = 'none';
+    filtered.forEach(d => {
+      const v = getVergabe(d.kosten);
+      const hm = [d.hersteller,d.modell].filter(Boolean).join(' / ');
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td data-label="Nr." style="font-weight:600;color:var(--ff-blue);font-size:12px;">'+d.nr+'</td>'
+        +'<td data-label="Bezeichnung">'+d.bezeichnung+(d.files&&d.files.length?' <i class="ti ti-paperclip" style="font-size:11px;color:var(--text2);" title="'+d.files.length+' Anhang/Anhänge"></i>':'')+'</td>'
+        +'<td data-label="Hersteller / Modell" style="font-size:12px;color:var(--text2);">'+(hm||'—')+'</td>'
+        +'<td data-label="Kategorie" style="font-size:12px;">'+d.kategorie+'</td>'
+        +'<td data-label="Kosten" style="text-align:right;">'+(d.kosten||0).toLocaleString('de-DE')+' €</td>'
+        +'<td data-label="Priorität"><span class="prio-badge '+prioClass(d.prioritaet)+'">'+d.prioritaet+'</span></td>'
+        +'<td data-label="Vergabeverfahren"><span class="vergabe-badge '+v.cls+'"><i class="ti '+v.icon+'" style="font-size:12px;"></i> '+v.label+'</span></td>'
+        +'<td data-label="Ablauf"><div style="display:flex;gap:4px;">'+ablaufDots(d.ablauf)+'</div></td>'
+        +'<td data-label="" style="white-space:nowrap;"><button class="btn-secondary" style="padding:4px 9px;font-size:12px;" onclick="openDetailModal(getProposalByNr(\''+d.nr+'\'))" title="Details / Bearbeiten"><i class="ti ti-eye"></i></button>'
+        +(isBeschaffer() ? ' <button class="btn-danger" onclick="deleteEntry(\''+d.nr+'\')"><i class="ti ti-trash"></i></button>' : '')+'</td>';
+      body.appendChild(tr);
+    });
+    document.getElementById('gesamtkosten').textContent = 'Gesamtkosten (Auswahl): ' + total.toLocaleString('de-DE') + ' €';
+  }
+  document.getElementById('list-meta').textContent = filtered.length + ' von ' + proposals.length + ' Einträgen';
+}
+
+// ══════════════════ TOAST ══════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ══════════════════ INPUT MODAL ══════════════════
+let _inputResolve = null;
+
+function showInputModal(label, title = 'Eingabe', defaultValue = '') {
+  document.getElementById('input-modal-label').textContent = label;
+  document.getElementById('input-modal-title').innerHTML = '<i class="ti ti-edit"></i> ' + title;
+  const field = document.getElementById('input-modal-field');
+  field.value = defaultValue;
+  document.getElementById('input-modal-overlay').classList.add('show');
+  setTimeout(() => field.focus(), 50);
+  return new Promise(resolve => { _inputResolve = resolve; });
+}
+
+function resolveInput(value) {
+  document.getElementById('input-modal-overlay').classList.remove('show');
+  if (_inputResolve) { _inputResolve(value); _inputResolve = null; }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('input-modal-overlay').classList.contains('show')) resolveInput(null);
+});
+
+// ══════════════════ CONFIRM MODAL ══════════════════
+let _confirmResolve = null;
+
+function showConfirm(msg, {label = 'Bestätigen', btnClass = 'btn-danger', title = 'Bestätigen'} = {}) {
+  document.getElementById('confirm-modal-msg').textContent = msg;
+  document.getElementById('confirm-modal-title').innerHTML = '<i class="ti ti-alert-triangle"></i> ' + title;
+  const btn = document.getElementById('confirm-modal-ok');
+  btn.className = btnClass;
+  btn.textContent = label;
+  document.getElementById('confirm-modal-overlay').classList.add('show');
+  return new Promise(resolve => { _confirmResolve = resolve; });
+}
+
+function resolveConfirm(result) {
+  document.getElementById('confirm-modal-overlay').classList.remove('show');
+  if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('confirm-modal-overlay').classList.contains('show')) resolveConfirm(false);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+services:
+  web:
+    build: .
+    ports:
+      - "80:5000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped

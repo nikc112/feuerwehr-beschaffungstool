@@ -1,0 +1,10 @@
+services:
+  web:
+    image: ghcr.io/nikc112/feuerwehr-beschaffungstool:latest
+    ports:
+      - "80:5000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
