@@ -840,7 +840,7 @@ tr:last-child td{border-bottom:none;}
       <button class="btn-secondary" onclick="printProposal()"><i class="ti ti-printer"></i> Drucken</button>
       <div style="display:flex;gap:10px;">
         <button class="btn-angebot" onclick="openAngebotFromDetail()"><i class="ti ti-mail-forward"></i> Angebot anfordern</button>
-        <button class="btn-primary" id="dm-save-btn" onclick="saveDetail()"><i class="ti ti-device-floppy"></i> Speichern</button>
+        <button class="btn-primary" id="dm-save-btn" onclick="saveDetail()"><i class="ti ti-device-floppy"></i> Speichern &amp; schließen</button>
       </div>
     </div>
   </div>
@@ -2202,10 +2202,11 @@ async function saveDetail() {
       currentDetailProposal = updated;
       renderList();
       showToast('Gespeichert.');
+      closeDetailModal();
     } else { showToast('Fehler beim Speichern.'); }
   } catch { showToast('Netzwerkfehler.'); }
   btn.disabled = false;
-  btn.innerHTML = '<i class="ti ti-device-floppy"></i> Speichern';
+  btn.innerHTML = '<i class="ti ti-device-floppy"></i> Speichern &amp; schließen';
 }
 
 function openAngebotFromDetail() {
