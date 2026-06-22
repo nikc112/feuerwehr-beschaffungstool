@@ -13,6 +13,7 @@ def create_app():
     data_dir = os.environ.get('DATA_DIR', '/app/data')
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(os.path.join(data_dir, 'uploads'), exist_ok=True)
+    os.makedirs(os.path.join(data_dir, 'branding'), exist_ok=True)
 
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bitte-aendern')
     app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(data_dir, 'database.db')}"
@@ -34,7 +35,6 @@ def create_app():
         from .models import User, Supplier, Proposal, Settings, Alternative, Quote  # noqa: F401
         db.create_all()
         _migrate()
-        _seed_suppliers()
 
     from .imap_worker import start_imap_worker
     start_imap_worker(app)
@@ -114,19 +114,3 @@ def _migrate():
         db.session.rollback()
 
 
-def _seed_suppliers():
-    from .models import Supplier
-    if Supplier.query.count() == 0:
-        initial = [
-            dict(name='Matuczak Feuerschutz', ansprechpartner='John-Robert Ramm',
-                 tel='0160 90723350', email='j-r.ramm@matuczak.de', is_test=False),
-            dict(name='CB König', ansprechpartner='Matthias Norton',
-                 tel='', email='mnorton@cbkoenig.de', is_test=False),
-            dict(name='Kraft Feuerschutz', ansprechpartner='Björn Beeken',
-                 tel='0162 9416990', email='beeken@kraft-feuerschutz.de', is_test=False),
-            dict(name='Jakob Nawrot', ansprechpartner='Jakob Nawrot',
-                 tel='0173 4887450', email='jakob.nawrot@feuerwehr-moorrege.de', is_test=True),
-        ]
-        for s in initial:
-            db.session.add(Supplier(**s))
-        db.session.commit()

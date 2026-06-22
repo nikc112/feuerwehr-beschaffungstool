@@ -1,6 +1,6 @@
 {
-  "name": "FF Moorrege – Beschaffung",
-  "short_name": "FF Beschaffung",
+  "name": "Beschaffungsmanagement",
+  "short_name": "Beschaffung",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from .models import (Proposal, Attachment, Supplier, User, Settings, Alternative, Quote,
                      get_vergabe_tiers, _VERGABE_KEYS,
-                     DEFAULT_FORM_HEADING, DEFAULT_FORM_INTRO)
+                     DEFAULT_FORM_HEADING, DEFAULT_FORM_INTRO, DEFAULT_BRAND)
 from . import db
 from .email_service import send_email
 from .notifications import notify_new_proposal
@@ -20,7 +20,9 @@ api_bp = Blueprint('api', __name__)
 
 _MASK = '●●●●●●'
 
-DEFAULT_EMAIL_SUBJECT = 'Angebotsanfrage: {bezeichnung} – FF Moorrege'
+# {organisation} wird beim Erzeugen der Defaults durch den eingestellten Namen
+# ersetzt (per .replace, damit die übrigen {…}-Platzhalter erhalten bleiben).
+DEFAULT_EMAIL_SUBJECT = 'Angebotsanfrage: {bezeichnung} – {organisation}'
 DEFAULT_EMAIL_BODY = (
     'Guten Tag {ansprechpartner},\n\n'
     'hiermit bitten wir Sie um ein Angebot für folgendes Produkt:\n\n'
@@ -32,10 +34,22 @@ DEFAULT_EMAIL_BODY = (
     '\nVorgangsnummer: {nr}\n\n'
     'Bitte senden Sie uns Ihr Angebot inkl. Lieferbedingungen und Lieferzeit zu.\n\n'
     'Mit freundlichen Grüßen\n'
-    'Freiwillige Feuerwehr Moorrege\n'
-    'Wedeler Ch. 67, 25436 Moorrege\n'
-    'Wehrfuehrung@feuerwehr-moorrege.de'
+    '{organisation}\n'
+    '{adresse}'
 )
+
+
+def _default_email_subject():
+    from .models import get_branding
+    return DEFAULT_EMAIL_SUBJECT.replace('{organisation}', get_branding()['name'])
+
+
+def _default_email_body():
+    from .models import get_branding
+    b = get_branding()
+    return (DEFAULT_EMAIL_BODY
+            .replace('{organisation}', b['name'])
+            .replace('{adresse}', b['address']))
 
 
 def admin_required(f):
@@ -562,22 +576,26 @@ _SMTP_KEYS = ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from
 _TEMPLATE_KEYS = ('email_subject', 'email_body')
 _IMAP_KEYS = ('imap_host', 'imap_port', 'imap_user', 'imap_password', 'imap_folder', 'imap_ssl', 'imap_enabled', 'imap_interval')
 _FORM_KEYS = ('form_heading', 'form_intro')
+_BRAND_KEYS = ('brand_name', 'brand_subtitle', 'brand_address', 'brand_color_primary',
+               'brand_color_accent', 'brand_color_bg')
 
 
 @api_bp.route('/settings', methods=['GET'])
 @admin_required
 def get_settings():
     result = {}
-    for key in _SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS:
+    for key in _SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS:
         val = Settings.get(key)
         if key in ('smtp_password', 'imap_password'):
             result[key] = _MASK if val else ''
         else:
             result[key] = val
-    result['_default_subject'] = DEFAULT_EMAIL_SUBJECT
-    result['_default_body'] = DEFAULT_EMAIL_BODY
+    result['_default_subject'] = _default_email_subject()
+    result['_default_body'] = _default_email_body()
     result['_default_form_heading'] = DEFAULT_FORM_HEADING
     result['_default_form_intro'] = DEFAULT_FORM_INTRO
+    for k, v in DEFAULT_BRAND.items():
+        result['_default_brand_' + k] = v
     result['vergabe_tiers'] = get_vergabe_tiers()
     return jsonify(result)
 
@@ -626,7 +644,7 @@ def update_settings():
             } for t in tv]
             Settings.set('vergabe_tiers', json.dumps(cleaned, ensure_ascii=False))
 
-    allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS)
+    allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS)
     for key, value in data.items():
         if key not in allowed:
             continue
@@ -634,6 +652,77 @@ def update_settings():
             continue
         Settings.set(key, value or '')
     db.session.commit()
+    return jsonify({'ok': True})
+
+
+# ── BRANDING / LOGO ──────────────────────────────────────────────────────────────
+
+_LOGO_EXTS = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+              'gif': 'image/gif', 'svg': 'image/svg+xml', 'webp': 'image/webp'}
+
+
+def _branding_dir():
+    return os.path.join(os.path.dirname(current_app.config['UPLOAD_FOLDER']), 'branding')
+
+
+@api_bp.route('/branding/logo', methods=['GET'])
+def get_branding_logo():
+    """Eigenes Logo aus dem data-Volume; sonst das neutrale Standard-Logo."""
+    fname = Settings.get('brand_logo')
+    resp = None
+    if fname:
+        path = os.path.join(_branding_dir(), fname)
+        if os.path.isfile(path):
+            resp = make_response(send_from_directory(_branding_dir(), fname))
+    if resp is None:
+        resp = make_response(current_app.send_static_file('default-logo.svg'))
+    # Stored-XSS-Schutz: ein hochgeladenes SVG darf beim Direktaufruf kein
+    # aktives Skripting im App-Origin ausführen (sandbox + nosniff).
+    resp.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    return resp
+
+
+@api_bp.route('/branding/logo', methods=['POST'])
+@admin_required
+def upload_branding_logo():
+    f = request.files.get('logo')
+    if not f or not f.filename:
+        return jsonify({'error': 'Keine Datei hochgeladen'}), 400
+    ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else ''
+    if ext not in _LOGO_EXTS:
+        return jsonify({'error': 'Nur PNG, JPG, GIF, SVG oder WEBP erlaubt'}), 400
+    bdir = _branding_dir()
+    os.makedirs(bdir, exist_ok=True)
+    # alte Logo-Datei(en) entfernen
+    old = Settings.get('brand_logo')
+    if old:
+        old_path = os.path.join(bdir, old)
+        if os.path.isfile(old_path):
+            try:
+                os.remove(old_path)
+            except OSError:
+                pass
+    fname = 'logo.' + ext
+    f.save(os.path.join(bdir, fname))
+    Settings.set('brand_logo', fname)
+    db.session.commit()
+    return jsonify({'ok': True, 'logo_url': '/api/branding/logo'})
+
+
+@api_bp.route('/branding/logo', methods=['DELETE'])
+@admin_required
+def delete_branding_logo():
+    fname = Settings.get('brand_logo')
+    if fname:
+        path = os.path.join(_branding_dir(), fname)
+        if os.path.isfile(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        Settings.set('brand_logo', '')
+        db.session.commit()
     return jsonify({'ok': True})
 
 
@@ -672,8 +761,8 @@ def send_emails():
         except (ValueError, TypeError):
             pass
 
-    subject_tpl = Settings.get('email_subject') or DEFAULT_EMAIL_SUBJECT
-    body_tpl = Settings.get('email_body') or DEFAULT_EMAIL_BODY
+    subject_tpl = Settings.get('email_subject') or _default_email_subject()
+    body_tpl = Settings.get('email_body') or _default_email_body()
 
     suppliers = Supplier.query.filter(Supplier.id.in_(recipient_ids)).all()
     errors = []

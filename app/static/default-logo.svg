@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Beschaffung Logo">
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#0785B7"/>
+  <!-- Klemmbrett / Beschaffungsliste -->
+  <rect x="18" y="14" width="28" height="36" rx="4" fill="#ffffff"/>
+  <rect x="26" y="10" width="12" height="7" rx="2.5" fill="#ffffff" stroke="#0785B7" stroke-width="2"/>
+  <!-- Häkchen-Zeilen -->
+  <path d="M23 25l2.4 2.4L30 23" fill="none" stroke="#0785B7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="33" y1="25" x2="41" y2="25" stroke="#9fb6c2" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M23 34l2.4 2.4L30 32" fill="none" stroke="#0785B7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="33" y1="34" x2="41" y2="34" stroke="#9fb6c2" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M23 43l2.4 2.4L30 41" fill="none" stroke="#0785B7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="33" y1="43" x2="41" y2="43" stroke="#9fb6c2" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

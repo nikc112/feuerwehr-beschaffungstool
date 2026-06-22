@@ -268,3 +268,45 @@ def get_form_texts():
         'heading': Settings.get('form_heading') or DEFAULT_FORM_HEADING,
         'intro': Settings.get('form_intro') or DEFAULT_FORM_INTRO,
     }
+
+
+# ── Branding / Erscheinungsbild (konfigurierbar, update-sicher im data-Volume) ──
+
+DEFAULT_BRAND = {
+    'name': 'Freiwillige Feuerwehr Musterstadt',
+    'subtitle': 'Beschaffungsmanagement',
+    'address': 'Musterstraße 1 · 12345 Musterstadt',
+    'color_primary': '#0785B7',
+    'color_accent': '#E95146',
+    'color_bg': '#f5f7fa',
+}
+
+
+def _lighten(hex_color, factor=0.18):
+    """Hex-Farbe Richtung Weiß aufhellen (für die Hover-Variante der Primärfarbe)."""
+    try:
+        h = (hex_color or '').lstrip('#')
+        if len(h) != 6:
+            return hex_color
+        r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+        r = round(r + (255 - r) * factor)
+        g = round(g + (255 - g) * factor)
+        b = round(b + (255 - b) * factor)
+        return f'#{r:02x}{g:02x}{b:02x}'
+    except (ValueError, TypeError):
+        return hex_color
+
+
+def get_branding():
+    """Aktuelle Branding-Werte; je Schlüssel der gespeicherte Wert oder der Default."""
+    primary = Settings.get('brand_color_primary') or DEFAULT_BRAND['color_primary']
+    return {
+        'name': Settings.get('brand_name') or DEFAULT_BRAND['name'],
+        'subtitle': Settings.get('brand_subtitle') or DEFAULT_BRAND['subtitle'],
+        'address': Settings.get('brand_address') or DEFAULT_BRAND['address'],
+        'color_primary': primary,
+        'primary_light': _lighten(primary),
+        'color_accent': Settings.get('brand_color_accent') or DEFAULT_BRAND['color_accent'],
+        'color_bg': Settings.get('brand_color_bg') or DEFAULT_BRAND['color_bg'],
+        'logo_url': '/api/branding/logo',
+    }
