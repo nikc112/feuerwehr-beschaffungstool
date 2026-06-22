@@ -773,8 +773,12 @@ tr:last-child td{border-bottom:none;}
         </div>
         <div class="form-row cols2" style="margin-bottom:12px;">
           <div class="field">
-            <label>Kosten (aktualisiert, € netto)</label>
-            <input type="number" id="dm-kosten" min="0" placeholder="z. B. 3400" oninput="updateDetailVergabe()" />
+            <label>Kosten gem. Angebotsvergleich</label>
+            <input type="number" id="dm-kosten" min="0" readonly style="background:var(--bg2);color:var(--text2);" title="Automatisch = günstigstes Angebot der Hauptposition × Menge" />
+            <div id="dm-kosten-hint" style="display:none;font-size:12px;color:var(--text2);margin-top:4px;">
+              <i class="ti ti-info-circle" style="color:var(--ff-blue);"></i>
+              Zur Haushaltsplanung Angebotsanforderung durchführen
+            </div>
           </div>
           <div class="field">
             <label>Beschaffungsart</label>
@@ -855,6 +859,10 @@ tr:last-child td{border-bottom:none;}
     </div>
     <div class="modal-body">
       <div class="angebot-hint"><i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px;"></i><span>Lieferant(en) auswählen – der Server versendet vorausgefüllte Angebotsanfragen per E-Mail.</span></div>
+      <div class="field" id="angebot-artikel-field" style="margin-bottom:12px;display:none;">
+        <label>Anfrage für</label>
+        <select id="angebot-artikel" onchange="onAngebotArtikelChange()"></select>
+      </div>
       <div id="produkt-preview" style="background:var(--bg2);border-radius:var(--radius);padding:11px 14px;margin-bottom:16px;font-size:12px;border:1px solid var(--border);"></div>
       <div id="lieferanten-liste"></div>
     </div>
@@ -975,6 +983,8 @@ let attachedFiles = [];
 let modalSuppliers = [];
 let pendingTab = null;
 let currentAngebotProposal = null;
+let angebotAlternatives = [];
+let currentDetailQuotes = [];
 let currentDetailProposal = null;
 
 function isBeschaffer() { return currentUser && (currentUser.role === 'beschaffer' || currentUser.role === 'admin'); }
@@ -1719,23 +1729,45 @@ async function deleteUser(id) {
 }
 
 // ══════════════════ ANGEBOT / EMAIL ══════════════════
+function renderAngebotPreview(her, mod, istAlt) {
+  const p = currentAngebotProposal || {};
+  const bez = p.bezeichnung || '—';
+  const kat = p.kategorie || '—';
+  const kosten = p.kosten;
+  document.getElementById('produkt-preview').innerHTML =
+    '<div style="font-weight:600;color:var(--ff-blue);margin-bottom:7px;font-size:13px;"><i class="ti ti-package"></i> '
+    + esc(bez) + (her ? ' · ' + esc(her) : '') + (mod ? ' ' + esc(mod) : '')
+    + (istAlt ? ' <span class="alt-tag">Alternative</span>' : '') + '</div>'
+    + '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;"><span><span style="color:var(--text2);">Nr.:</span> ' + esc(p.nr || '') + '</span><span><span style="color:var(--text2);">Kategorie:</span> ' + esc(kat) + '</span>'
+    + (kosten ? '<span><span style="color:var(--text2);">Kosten:</span> ' + parseFloat(kosten).toLocaleString('de-DE') + ' € netto</span>' : '')
+    + '</div>';
+}
+
+function onAngebotArtikelChange() {
+  const altId = document.getElementById('angebot-artikel').value;
+  if (altId) {
+    const a = angebotAlternatives.find(x => String(x.id) === altId);
+    if (a) { renderAngebotPreview(a.hersteller, a.modell, true); return; }
+  }
+  renderAngebotPreview(currentAngebotProposal.hersteller || '', currentAngebotProposal.modell || '', false);
+}
+
 async function openAngebotModal(proposal) {
   if (!currentUser || !proposal) return;
   currentAngebotProposal = proposal;
   const r = await fetch('/api/suppliers');
   if (!r.ok) { showToast('Lieferanten konnten nicht geladen werden.'); return; }
   modalSuppliers = await r.json();
-  const bez = proposal.bezeichnung || '—';
-  const her = proposal.hersteller || '';
-  const mod = proposal.modell || '';
-  const kat = proposal.kategorie || '—';
-  const kosten = proposal.kosten;
-  document.getElementById('produkt-preview').innerHTML =
-    '<div style="font-weight:600;color:var(--ff-blue);margin-bottom:7px;font-size:13px;"><i class="ti ti-package"></i> '
-    + bez + (her ? ' · ' + her : '') + (mod ? ' ' + mod : '') + '</div>'
-    + '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;"><span><span style="color:var(--text2);">Nr.:</span> ' + proposal.nr + '</span><span><span style="color:var(--text2);">Kategorie:</span> ' + kat + '</span>'
-    + (kosten ? '<span><span style="color:var(--text2);">Kosten:</span> ' + parseFloat(kosten).toLocaleString('de-DE') + ' € netto</span>' : '')
-    + '</div>';
+  // Haupt-/Alternativposition-Auswahl aufbauen
+  angebotAlternatives = await loadAlternatives(proposal.nr);
+  const artikelField = document.getElementById('angebot-artikel-field');
+  const artikelSel = document.getElementById('angebot-artikel');
+  const hauptLabel = 'Hauptposition' + ([proposal.hersteller, proposal.modell].filter(Boolean).join(' ') ? ' — ' + [proposal.hersteller, proposal.modell].filter(Boolean).join(' ') : '');
+  artikelSel.innerHTML = '<option value="">' + esc(hauptLabel) + '</option>'
+    + angebotAlternatives.map(a => '<option value="' + a.id + '">Alternative — ' + esc([a.hersteller, a.modell].filter(Boolean).join(' ')) + '</option>').join('');
+  artikelSel.value = '';
+  artikelField.style.display = angebotAlternatives.length ? '' : 'none';
+  renderAngebotPreview(proposal.hersteller || '', proposal.modell || '', false);
   const liste = document.getElementById('lieferanten-liste');
   liste.innerHTML = '';
   modalSuppliers.forEach(l => {
@@ -1770,11 +1802,19 @@ async function sendAngebote() {
   const btn = document.getElementById('btn-send-angebot');
   btn.disabled = true;
   btn.textContent = 'Wird gesendet…';
+  // Hersteller/Modell der gewählten Haupt- oder Alternativposition
+  let her = currentAngebotProposal.hersteller || '';
+  let mod = currentAngebotProposal.modell || '';
+  const altId = document.getElementById('angebot-artikel').value;
+  if (altId) {
+    const a = angebotAlternatives.find(x => String(x.id) === altId);
+    if (a) { her = a.hersteller || ''; mod = a.modell || ''; }
+  }
   const payload = {
     recipientIds: selected.map(l => l.id),
     bezeichnung: currentAngebotProposal.bezeichnung || '',
-    hersteller: currentAngebotProposal.hersteller || '',
-    modell: currentAngebotProposal.modell || '',
+    hersteller: her,
+    modell: mod,
     kategorie: currentAngebotProposal.kategorie || '',
     kosten: currentAngebotProposal.kosten || null,
     nr: currentAngebotProposal.nr || '',
@@ -1902,7 +1942,9 @@ function openDetailModal(proposal) {
       + '</div>'
     ).join('');
   } else { filesEl.textContent = '—'; }
-  document.getElementById('dm-kosten').value = proposal.kosten || '';
+  // "Kosten gem. Angebotsvergleich" wird aus den Angeboten berechnet (siehe loadQuotes-Callback)
+  currentDetailQuotes = [];
+  document.getElementById('dm-kosten').value = '';
   document.getElementById('dm-beschaffungsart').value = proposal.beschaffungsart || '';
   document.getElementById('dm-notizen').value = proposal.notizen || '';
   document.querySelectorAll('#dm-ablauf-chips .ablauf-chip').forEach(c => {
@@ -1927,7 +1969,7 @@ function openDetailModal(proposal) {
     renderAlternatives(alts);
     refreshQuoteAlternativeSelect(alts);
   });
-  loadQuotes(proposal.nr).then(quotes => renderQuotes(quotes));
+  loadQuotes(proposal.nr).then(quotes => { currentDetailQuotes = quotes; renderQuotes(quotes); recomputeKostenFromQuotes(); });
 
   // Reset alt add form
   closeAddAltForm();
@@ -1951,6 +1993,26 @@ function updateGesamtpreis() {
   } else {
     disp.style.display = 'none';
   }
+  recomputeKostenFromQuotes();
+}
+
+// Setzt "Kosten gem. Angebotsvergleich" = günstigstes Angebot der Hauptposition × Menge.
+function recomputeKostenFromQuotes() {
+  const kostenEl = document.getElementById('dm-kosten');
+  const hintEl = document.getElementById('dm-kosten-hint');
+  if (!kostenEl) return;
+  const menge = parseInt(document.getElementById('dm-menge').value) || 1;
+  // Nur Angebote der Hauptposition (ohne alternative_id) mit echtem Preis
+  const haupt = (currentDetailQuotes || []).filter(q => q.preis_stueck > 0 && !q.alternative_id);
+  const minPreis = haupt.length ? Math.min(...haupt.map(q => q.preis_stueck)) : null;
+  if (minPreis !== null) {
+    kostenEl.value = Math.round(minPreis * menge * 100) / 100;
+    if (hintEl) hintEl.style.display = 'none';
+  } else {
+    kostenEl.value = '';
+    if (hintEl) hintEl.style.display = '';
+  }
+  updateDetailVergabe();
 }
 
 // ══════════════════ ALTERNATIVEN ══════════════════
@@ -2087,7 +2149,9 @@ async function enterQuotePrice(quoteId) {
   });
   if (r.ok) {
     const quotes = await loadQuotes(currentDetailProposal.nr);
+    currentDetailQuotes = quotes;
     renderQuotes(quotes);
+    recomputeKostenFromQuotes();
     showToast('Preis gespeichert.');
   } else showToast('Fehler beim Speichern.');
 }
@@ -2154,7 +2218,9 @@ async function saveQuote() {
   if (r && r.ok) {
     closeQuoteModal();
     const quotes = await loadQuotes(currentDetailProposal.nr);
+    currentDetailQuotes = quotes;
     renderQuotes(quotes);
+    recomputeKostenFromQuotes();
     showToast('Angebot gespeichert.');
   } else {
     const e = await r.json().catch(() => ({}));
@@ -2167,7 +2233,9 @@ async function deleteQuote(quoteId) {
   const r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr) + '/quotes/' + quoteId, {method: 'DELETE'});
   if (r.ok) {
     const quotes = await loadQuotes(currentDetailProposal.nr);
+    currentDetailQuotes = quotes;
     renderQuotes(quotes);
+    recomputeKostenFromQuotes();
     showToast('Angebot gelöscht.');
   } else showToast('Fehler beim Löschen.');
 }
