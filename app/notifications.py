@@ -34,6 +34,25 @@ def notify_async(app, subject, body):
     ).start()
 
 
+def _send_to_one(app, email, name, subject, body):
+    from .email_service import send_email
+    with app.app_context():
+        try:
+            send_email(email, name, subject, body)
+        except Exception as e:
+            logger.error('Einreicher-Benachrichtigung an %s fehlgeschlagen: %s', email, e)
+
+
+def notify_submitter(app, email, name, subject, body):
+    """Einzelne Benachrichtigung an den Einreicher (Daemon-Thread, best effort)."""
+    if not (email or '').strip():
+        return
+    threading.Thread(
+        target=_send_to_one, args=(app, email, name, subject, body),
+        name='notify-submitter', daemon=True,
+    ).start()
+
+
 def notify_new_proposal(app, nr, bezeichnung, einreicher):
     subject = f'Neuer Vorschlag im Eingangskorb: {nr}'
     body = ('Im Eingangskorb ist ein neuer Beschaffungsvorschlag eingegangen.\n\n'

@@ -52,6 +52,64 @@ def _default_email_body():
             .replace('{adresse}', b['address']))
 
 
+# ── Entscheidungs-Mails an den Einreicher (Genehmigung / Ablehnung) ─────────────
+DEFAULT_APPROVE_SUBJECT = 'Ihr Beschaffungsvorschlag {nr} wurde genehmigt'
+DEFAULT_APPROVE_BODY = (
+    'Guten Tag {einreicher},\n\n'
+    'Ihr Beschaffungsvorschlag wurde genehmigt und in die Investitionsliste übernommen.\n\n'
+    'Nr.: {nr}\n'
+    'Bezeichnung: {bezeichnung}\n\n'
+    'Mit freundlichen Grüßen\n'
+    '{organisation}'
+)
+DEFAULT_REJECT_SUBJECT = 'Ihr Beschaffungsvorschlag {nr} wurde abgelehnt'
+DEFAULT_REJECT_BODY = (
+    'Guten Tag {einreicher},\n\n'
+    'Ihr Beschaffungsvorschlag wurde leider abgelehnt.\n\n'
+    'Nr.: {nr}\n'
+    'Bezeichnung: {bezeichnung}\n'
+    '{grund}'
+    '\nMit freundlichen Grüßen\n'
+    '{organisation}'
+)
+
+
+def _default_proposal_mail(key):
+    """Default-Text mit eingesetztem Organisationsnamen (für Settings-Anzeige)."""
+    from .models import get_branding
+    raw = {
+        'approve_subject': DEFAULT_APPROVE_SUBJECT, 'approve_body': DEFAULT_APPROVE_BODY,
+        'reject_subject': DEFAULT_REJECT_SUBJECT, 'reject_body': DEFAULT_REJECT_BODY,
+    }[key]
+    return raw.replace('{organisation}', get_branding()['name'])
+
+
+def _send_proposal_decision_mail(proposal, kind, grund=''):
+    """Genehmigungs-/Ablehnungs-Mail an den Einreicher (best effort, nur wenn E-Mail vorhanden)."""
+    from .models import get_branding
+    from .notifications import notify_submitter
+    if not (proposal.einreicher_email or '').strip():
+        return False
+    subj_key, body_key = (kind + '_subject'), (kind + '_body')
+    subject_tpl = Settings.get(subj_key) or _default_proposal_mail(subj_key)
+    body_tpl = Settings.get(body_key) or _default_proposal_mail(body_key)
+    grund_str = f'Begründung: {grund.strip()}\n' if grund and grund.strip() else ''
+    fields = dict(
+        einreicher=proposal.einreicher_name or '',
+        nr=proposal.nr, bezeichnung=proposal.bezeichnung or '',
+        organisation=get_branding()['name'], grund=grund_str,
+    )
+    try:
+        subject = subject_tpl.format(**fields)
+        body = body_tpl.format(**fields)
+    except (KeyError, IndexError, ValueError):
+        subject = _default_proposal_mail(subj_key).format(**fields)
+        body = _default_proposal_mail(body_key).format(**fields)
+    notify_submitter(current_app._get_current_object(), proposal.einreicher_email,
+                     proposal.einreicher_name or '', subject, body)
+    return True
+
+
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -237,16 +295,23 @@ def approve_proposal(nr):
     proposal.approved_by_id = current_user.id
     proposal.approved_at = datetime.utcnow()
     db.session.commit()
-    return jsonify(proposal.to_dict())
+    notified = _send_proposal_decision_mail(proposal, 'approve')
+    result = proposal.to_dict()
+    result['notified'] = notified
+    return jsonify(result)
 
 
 @api_bp.route('/proposals/<path:nr>/reject', methods=['POST'])
 @beschaffer_required
 def reject_proposal(nr):
     proposal = Proposal.query.filter_by(nr=nr).first_or_404()
+    grund = (request.get_json(silent=True) or {}).get('grund', '') or ''
     proposal.status = 'rejected'
     db.session.commit()
-    return jsonify(proposal.to_dict())
+    notified = _send_proposal_decision_mail(proposal, 'reject', grund)
+    result = proposal.to_dict()
+    result['notified'] = notified
+    return jsonify(result)
 
 
 # ── ALTERNATIVES ───────────────────────────────────────────────────────────────
@@ -578,13 +643,14 @@ _IMAP_KEYS = ('imap_host', 'imap_port', 'imap_user', 'imap_password', 'imap_fold
 _FORM_KEYS = ('form_heading', 'form_intro')
 _BRAND_KEYS = ('brand_name', 'brand_subtitle', 'brand_address', 'brand_color_primary',
                'brand_color_accent', 'brand_color_bg')
+_PROPOSAL_MAIL_KEYS = ('approve_subject', 'approve_body', 'reject_subject', 'reject_body')
 
 
 @api_bp.route('/settings', methods=['GET'])
 @admin_required
 def get_settings():
     result = {}
-    for key in _SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS:
+    for key in _SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS + _PROPOSAL_MAIL_KEYS:
         val = Settings.get(key)
         if key in ('smtp_password', 'imap_password'):
             result[key] = _MASK if val else ''
@@ -596,6 +662,8 @@ def get_settings():
     result['_default_form_intro'] = DEFAULT_FORM_INTRO
     for k, v in DEFAULT_BRAND.items():
         result['_default_brand_' + k] = v
+    for k in _PROPOSAL_MAIL_KEYS:
+        result['_default_' + k] = _default_proposal_mail(k)
     result['vergabe_tiers'] = get_vergabe_tiers()
     return jsonify(result)
 
@@ -644,7 +712,7 @@ def update_settings():
             } for t in tv]
             Settings.set('vergabe_tiers', json.dumps(cleaned, ensure_ascii=False))
 
-    allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS)
+    allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS + _PROPOSAL_MAIL_KEYS)
     for key, value in data.items():
         if key not in allowed:
             continue
