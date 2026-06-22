@@ -71,6 +71,21 @@ def test_custom_template_is_used(app, auth_client, monkeypatch):
     assert sent[0]['subject'] == 'OK ' + nr + ' – Wärmebildkamera'
 
 
+def test_reject_stores_reason_and_reopen_clears(app, auth_client, monkeypatch):
+    monkeypatch.setattr('app.notifications.notify_submitter', lambda *a, **k: None)
+    nr = _create_proposal(auth_client, monkeypatch, 'melder@example.com')
+    auth_client.post('/api/proposals/' + nr + '/reject', json={'grund': 'Kein Budget'})
+    rej = auth_client.get('/api/proposals?status=rejected').get_json()
+    assert rej[0]['rejection_reason'] == 'Kein Budget'
+    # Wieder öffnen → zurück auf pending, Grund entfernt
+    r = auth_client.post('/api/proposals/' + nr + '/reopen')
+    assert r.status_code == 200
+    assert r.get_json()['status'] == 'pending'
+    assert r.get_json()['rejection_reason'] == ''
+    assert auth_client.get('/api/proposals?status=rejected').get_json() == []
+    assert any(x['nr'] == nr for x in auth_client.get('/api/proposals?status=pending').get_json())
+
+
 def test_betrachter_cannot_reject(app, client, monkeypatch):
     nr = _create_proposal(client, monkeypatch, 'melder@example.com')
     from app import db

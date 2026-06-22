@@ -67,6 +67,7 @@ def _migrate():
         'ALTER TABLE proposals ADD COLUMN menge INTEGER DEFAULT 1',
         'ALTER TABLE proposals ADD COLUMN stueckpreis_geschaetzt FLOAT',
         'ALTER TABLE proposals ADD COLUMN geplanter_zeitpunkt VARCHAR(20)',
+        'ALTER TABLE proposals ADD COLUMN rejection_reason TEXT',
         # New tables
         '''CREATE TABLE IF NOT EXISTS alternatives (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

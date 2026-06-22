@@ -70,6 +70,7 @@ class Proposal(db.Model):
     menge = db.Column(db.Integer, default=1)
     stueckpreis_geschaetzt = db.Column(db.Float, nullable=True)
     geplanter_zeitpunkt = db.Column(db.String(20))  # geplantes Beschaffungsjahr, z. B. "2028"
+    rejection_reason = db.Column(db.Text)  # Ablehnungsgrund (nur bei status='rejected')
 
     attachments = db.relationship('Attachment', backref='proposal', lazy=True,
                                   cascade='all, delete-orphan')
@@ -107,6 +108,7 @@ class Proposal(db.Model):
             'menge': self.menge or 1,
             'stueckpreis_geschaetzt': self.stueckpreis_geschaetzt,
             'geplanter_zeitpunkt': self.geplanter_zeitpunkt or '',
+            'rejection_reason': self.rejection_reason or '',
         }
 
 

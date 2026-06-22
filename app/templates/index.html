@@ -198,10 +198,10 @@ tr:last-child td{border-bottom:none;}
   #view-eingangskorb .ek-detail-inner{grid-template-columns:1fr;padding:10px 14px;}
   .card-table tr.ek-detail-row{border:none;margin:0 0 10px;padding:0;background:transparent;}
   .card-table tr.ek-detail-row td{display:block;padding:0 !important;}
-  #eingangskorb-table td[data-label=""]{flex-wrap:wrap;white-space:normal;justify-content:flex-start;gap:8px;}
+  #eingangskorb-table td[data-label=""],#ek-rejected-table td[data-label=""]{flex-wrap:wrap;white-space:normal;justify-content:flex-start;gap:8px;}
   /* In der Karten-Ansicht dürfen lange Texte wieder umbrechen */
   #list-table th,#list-table td{white-space:normal;word-break:break-word;}
-  #eingangskorb-table .btn-success,#eingangskorb-table .btn-danger{flex:1;justify-content:center;}
+  #eingangskorb-table .btn-success,#eingangskorb-table .btn-danger,#ek-rejected-table .btn-secondary,#ek-rejected-table .btn-danger{flex:1;justify-content:center;}
 }
 @media print{
   body>*:not(#print-content){display:none!important;}
@@ -419,22 +419,46 @@ tr:last-child td{border-bottom:none;}
     <span style="font-size:20px;font-weight:600;color:var(--ff-blue);">Eingangskorb</span>
     <div style="font-size:13px;color:var(--text2);margin-top:4px;">Neue Beschaffungsvorschläge zur Prüfung und Genehmigung.</div>
   </div>
-  <div id="eingangskorb-summary" style="margin-bottom:16px;font-size:13px;color:var(--text2);"></div>
-  <div id="eingangskorb-empty" style="display:none;" class="empty-state">Keine ausstehenden Vorschläge.</div>
-  <table id="eingangskorb-table" class="card-table" style="display:none;">
-    <thead>
-      <tr>
-        <th style="width:28px;"></th>
-        <th style="width:80px;">Nr.</th>
-        <th>Bezeichnung</th>
-        <th style="width:140px;">Einreicher</th>
-        <th style="width:90px;">Eingegangen</th>
-        <th style="width:110px;">Status</th>
-        <th>Aktionen</th>
-      </tr>
-    </thead>
-    <tbody id="eingangskorb-tbody"></tbody>
-  </table>
+  <div class="settings-tabs" id="ek-tabs">
+    <button class="settings-tab active" data-ek="pending" onclick="showEkPane('pending')"><i class="ti ti-clock"></i> Ausstehend <span id="ek-count-pending"></span></button>
+    <button class="settings-tab" data-ek="rejected" onclick="showEkPane('rejected')"><i class="ti ti-x"></i> Abgelehnt <span id="ek-count-rejected"></span></button>
+  </div>
+
+  <!-- Ausstehend -->
+  <div id="ek-pane-pending">
+    <div id="eingangskorb-empty" style="display:none;" class="empty-state">Keine ausstehenden Vorschläge.</div>
+    <table id="eingangskorb-table" class="card-table" style="display:none;">
+      <thead>
+        <tr>
+          <th style="width:28px;"></th>
+          <th style="width:80px;">Nr.</th>
+          <th>Bezeichnung</th>
+          <th style="width:140px;">Einreicher</th>
+          <th style="width:90px;">Eingegangen</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="eingangskorb-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Abgelehnt -->
+  <div id="ek-pane-rejected" style="display:none;">
+    <div id="ek-rejected-empty" style="display:none;" class="empty-state">Keine abgelehnten Vorschläge.</div>
+    <table id="ek-rejected-table" class="card-table" style="display:none;">
+      <thead>
+        <tr>
+          <th style="width:80px;">Nr.</th>
+          <th style="width:160px;">Bezeichnung</th>
+          <th style="width:130px;">Einreicher</th>
+          <th style="width:90px;">Eingegangen</th>
+          <th>Grund der Ablehnung</th>
+          <th style="width:200px;">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="ek-rejected-tbody"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- ══════════════════ VIEW: INVESTITIONSLISTE ══════════════════ -->
@@ -1289,7 +1313,7 @@ function showTab(t) {
   _activateTab(t);
   _switchView(t);
   if (t === 'list') loadProposals();
-  if (t === 'eingangskorb') loadEingangskorb();
+  if (t === 'eingangskorb') { showEkPane('pending'); loadEingangskorb(); }
   if (t === 'lieferanten') loadSuppliersTab();
   if (t === 'benutzer') loadUsersTab();
   if (t === 'einstellungen') loadSettingsTab();
@@ -1332,44 +1356,43 @@ async function loadProposals() {
 }
 
 // ══════════════════ EINGANGSKORB ══════════════════
+function showEkPane(name) {
+  document.getElementById('ek-pane-pending').style.display = (name === 'pending') ? '' : 'none';
+  document.getElementById('ek-pane-rejected').style.display = (name === 'rejected') ? '' : 'none';
+  document.querySelectorAll('#ek-tabs .settings-tab').forEach(b => b.classList.toggle('active', b.dataset.ek === name));
+}
+
 async function loadEingangskorb() {
   const r = await fetch('/api/proposals/pending');
   if (!r.ok) { showToast('Fehler beim Laden des Eingangskorbs.'); return; }
   const items = await r.json();
+  const pending = items.filter(p => p.status === 'pending');
+  const rejected = items.filter(p => p.status === 'rejected');
+  document.getElementById('ek-count-pending').textContent = '(' + pending.length + ')';
+  document.getElementById('ek-count-rejected').textContent = '(' + rejected.length + ')';
+  renderPendingRows(pending);
+  renderRejectedRows(rejected);
+}
+
+function renderPendingRows(pending) {
   const tbody = document.getElementById('eingangskorb-tbody');
   const table = document.getElementById('eingangskorb-table');
   const empty = document.getElementById('eingangskorb-empty');
-  const summary = document.getElementById('eingangskorb-summary');
   tbody.innerHTML = '';
-  const pending = items.filter(p => p.status === 'pending');
-  const rejected = items.filter(p => p.status === 'rejected');
-  summary.textContent = pending.length + ' ausstehend' + (rejected.length ? ', ' + rejected.length + ' abgelehnt' : '');
-  if (!items.length) {
-    table.style.display = 'none';
-    empty.style.display = 'block';
-    return;
-  }
-  table.style.display = '';
-  empty.style.display = 'none';
-  items.forEach(p => {
-    const isRejected = p.status === 'rejected';
+  table.style.display = pending.length ? '' : 'none';
+  empty.style.display = pending.length ? 'none' : 'block';
+  pending.forEach(p => {
     const domId = p.nr.replace(/[^a-zA-Z0-9]/g, '_');
     const nrEnc = encodeURIComponent(p.nr);
-
     const tr = document.createElement('tr');
-    if (isRejected) tr.style.background = '#fff8f8';
     tr.innerHTML = '<td data-label=""><button class="ek-toggle-btn" id="ek-btn-' + domId + '" onclick="toggleEingangDetail(\'' + domId + '\')" title="Details anzeigen">&#9654;</button></td>'
       + '<td data-label="Nr." style="font-weight:600;color:var(--ff-blue);font-size:12px;">' + esc(p.nr) + '</td>'
       + '<td data-label="Bezeichnung">' + esc(p.bezeichnung) + '</td>'
       + '<td data-label="Einreicher" style="font-size:12px;color:var(--text2);">' + (p.einreicher_name ? esc(p.einreicher_name) : '—') + '</td>'
       + '<td data-label="Eingegangen" style="font-size:12px;color:var(--text2);">' + (p.created_at || '—') + '</td>'
-      + '<td data-label="Status"><span class="' + (isRejected ? 'badge-rejected' : 'badge-pending') + '">' + (isRejected ? 'Abgelehnt' : 'Ausstehend') + '</span></td>'
       + '<td data-label="" style="white-space:nowrap;">'
-      + (isRejected
-          ? '<button class="btn-success" onclick="approveProposal(\'' + nrEnc + '\')" style="margin-right:4px;"><i class="ti ti-check"></i> Genehmigen</button>'
-            + '<button class="btn-danger" onclick="deleteEingangEntry(\'' + nrEnc + '\')"><i class="ti ti-trash"></i></button>'
-          : '<button class="btn-success" onclick="approveProposal(\'' + nrEnc + '\')" style="margin-right:4px;"><i class="ti ti-check"></i> Genehmigen</button>'
-            + '<button class="btn-danger" onclick="rejectProposal(\'' + nrEnc + '\')"><i class="ti ti-x"></i> Ablehnen</button>')
+      + '<button class="btn-success" onclick="approveProposal(\'' + nrEnc + '\')" style="margin-right:4px;"><i class="ti ti-check"></i> Genehmigen</button>'
+      + '<button class="btn-danger" onclick="rejectProposal(\'' + nrEnc + '\')"><i class="ti ti-x"></i> Ablehnen</button>'
       + '</td>';
 
     const hm = [p.hersteller, p.modell].filter(Boolean).join(' / ') || '—';
@@ -1379,7 +1402,7 @@ async function loadEingangskorb() {
     detailTr.className = 'ek-detail-row';
     detailTr.id = 'ek-detail-' + domId;
     detailTr.style.display = 'none';
-    detailTr.innerHTML = '<td colspan="7"><div class="ek-detail-inner">'
+    detailTr.innerHTML = '<td colspan="6"><div class="ek-detail-inner">'
       + '<div class="ek-field"><label>Hersteller / Modell</label><span>' + esc(hm) + '</span></div>'
       + '<div class="ek-field"><label>Kategorie</label><span>' + esc(p.kategorie || '—') + '</span></div>'
       + '<div class="ek-field"><label>Menge</label><span>' + esc(String(p.menge || 1)) + ' Stück</span></div>'
@@ -1392,6 +1415,38 @@ async function loadEingangskorb() {
     tbody.appendChild(tr);
     tbody.appendChild(detailTr);
   });
+}
+
+function renderRejectedRows(rejected) {
+  const tbody = document.getElementById('ek-rejected-tbody');
+  const table = document.getElementById('ek-rejected-table');
+  const empty = document.getElementById('ek-rejected-empty');
+  tbody.innerHTML = '';
+  table.style.display = rejected.length ? '' : 'none';
+  empty.style.display = rejected.length ? 'none' : 'block';
+  rejected.forEach(p => {
+    const nrEnc = encodeURIComponent(p.nr);
+    const tr = document.createElement('tr');
+    tr.style.background = '#fff8f8';
+    tr.innerHTML = '<td data-label="Nr." style="font-weight:600;color:var(--ff-blue);font-size:12px;">' + esc(p.nr) + '</td>'
+      + '<td data-label="Bezeichnung">' + esc(p.bezeichnung) + '</td>'
+      + '<td data-label="Einreicher" style="font-size:12px;color:var(--text2);">' + (p.einreicher_name ? esc(p.einreicher_name) : '—') + '</td>'
+      + '<td data-label="Eingegangen" style="font-size:12px;color:var(--text2);">' + (p.created_at || '—') + '</td>'
+      + '<td data-label="Grund der Ablehnung" style="font-size:12px;white-space:pre-wrap;">' + (p.rejection_reason ? esc(p.rejection_reason) : '<span style="color:var(--text2);">— (kein Grund angegeben)</span>') + '</td>'
+      + '<td data-label="" style="white-space:nowrap;">'
+      + '<button class="btn-secondary" onclick="reopenProposal(\'' + nrEnc + '\')" style="margin-right:4px;"><i class="ti ti-arrow-back-up"></i> Wieder öffnen</button>'
+      + '<button class="btn-danger" onclick="deleteEingangEntry(\'' + nrEnc + '\')"><i class="ti ti-trash"></i></button>'
+      + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+async function reopenProposal(nrEnc) {
+  const nr = decodeURIComponent(nrEnc);
+  if (!await showConfirm('Vorschlag ' + nr + ' wieder öffnen? Er erscheint dann wieder unter „Ausstehend" (der Ablehnungsgrund wird entfernt).', {label: 'Wieder öffnen', title: 'Wieder öffnen'})) return;
+  const r = await fetch('/api/proposals/' + nrEnc + '/reopen', {method: 'POST'});
+  if (r.ok) { showToast('Vorschlag ' + nr + ' wieder geöffnet.'); loadEingangskorb(); }
+  else showToast('Fehler beim Wiederöffnen.');
 }
 
 async function approveProposal(nrEnc) {

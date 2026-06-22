@@ -292,6 +292,7 @@ def delete_proposal(nr):
 def approve_proposal(nr):
     proposal = Proposal.query.filter_by(nr=nr).first_or_404()
     proposal.status = 'approved'
+    proposal.rejection_reason = ''
     proposal.approved_by_id = current_user.id
     proposal.approved_at = datetime.utcnow()
     db.session.commit()
@@ -307,11 +308,23 @@ def reject_proposal(nr):
     proposal = Proposal.query.filter_by(nr=nr).first_or_404()
     grund = (request.get_json(silent=True) or {}).get('grund', '') or ''
     proposal.status = 'rejected'
+    proposal.rejection_reason = grund.strip()
     db.session.commit()
     notified = _send_proposal_decision_mail(proposal, 'reject', grund)
     result = proposal.to_dict()
     result['notified'] = notified
     return jsonify(result)
+
+
+@api_bp.route('/proposals/<path:nr>/reopen', methods=['POST'])
+@beschaffer_required
+def reopen_proposal(nr):
+    """Abgelehnten Vorschlag zurück auf 'pending' setzen (Grund entfernen)."""
+    proposal = Proposal.query.filter_by(nr=nr).first_or_404()
+    proposal.status = 'pending'
+    proposal.rejection_reason = ''
+    db.session.commit()
+    return jsonify(proposal.to_dict())
 
 
 # ── ALTERNATIVES ───────────────────────────────────────────────────────────────
