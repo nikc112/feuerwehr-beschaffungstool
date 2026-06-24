@@ -96,6 +96,7 @@ def test_graph_poll_imports_quote(app, monkeypatch):
     monkeypatch.setattr(graph_mail, '_get_token', lambda s: 'TOK')
 
     def fake_api(method, path, token, body=None, raw=False):
+        assert ' ' not in path, f'URL enthält unkodiertes Leerzeichen: {path}'
         if method == 'GET' and 'mailFolders/inbox/messages' in path:
             return {'value': [{
                 'id': 'M1', 'subject': 'Re: Angebot [FF-01/2026]',

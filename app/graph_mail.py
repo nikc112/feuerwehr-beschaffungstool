@@ -132,10 +132,13 @@ def poll_graph_once(app):
         upload_dir = app.config.get('UPLOAD_FOLDER', '/app/data/uploads')
         os.makedirs(upload_dir, exist_ok=True)
 
+        query = urllib.parse.urlencode({
+            '$filter': 'isRead eq false',
+            '$top': '25',
+            '$select': 'id,subject,from,hasAttachments,body',
+        }, quote_via=urllib.parse.quote)
         try:
-            resp = _api('GET', f'/users/{mbox}/mailFolders/inbox/messages'
-                               '?$filter=isRead eq false&$top=25'
-                               '&$select=id,subject,from,hasAttachments,body', token)
+            resp = _api('GET', f'/users/{mbox}/mailFolders/inbox/messages?{query}', token)
         except Exception as e:
             logger.error('Graph fetch error: %s', e)
             return {'error': str(e)}
@@ -145,18 +148,19 @@ def poll_graph_once(app):
 
         for m in msgs:
             mid = m.get('id')
+            mid_q = urllib.parse.quote(mid or '', safe='')
             try:
                 subject = m.get('subject') or ''
                 sender = ((m.get('from') or {}).get('emailAddress') or {}).get('address', '').lower()
                 match = _TAG_RE.search(subject)
                 if not match:
-                    _api('PATCH', f'/users/{mbox}/messages/{mid}', token, {'isRead': True})
+                    _api('PATCH', f'/users/{mbox}/messages/{mid_q}', token, {'isRead': True})
                     skipped += 1
                     continue
                 nr = match.group(1)
                 proposal = Proposal.query.filter_by(nr=nr).first()
                 if not proposal:
-                    _api('PATCH', f'/users/{mbox}/messages/{mid}', token, {'isRead': True})
+                    _api('PATCH', f'/users/{mbox}/messages/{mid_q}', token, {'isRead': True})
                     skipped += 1
                     continue
 
@@ -169,7 +173,7 @@ def poll_graph_once(app):
                 # Roh-MIME als .eml für die Original-Mail-Ansicht
                 eml_name = None
                 try:
-                    raw = _api('GET', f'/users/{mbox}/messages/{mid}/$value', token, raw=True)
+                    raw = _api('GET', f'/users/{mbox}/messages/{mid_q}/$value', token, raw=True)
                     eml_name = f'email_{int(time.time())}.eml'
                     with open(os.path.join(upload_dir, eml_name), 'wb') as fh:
                         fh.write(raw)
@@ -179,7 +183,7 @@ def poll_graph_once(app):
                 # PDF-Anhänge
                 pdfs = []
                 if m.get('hasAttachments'):
-                    atts = _api('GET', f'/users/{mbox}/messages/{mid}/attachments', token).get('value', [])
+                    atts = _api('GET', f'/users/{mbox}/messages/{mid_q}/attachments', token).get('value', [])
                     for a in atts:
                         is_file = str(a.get('@odata.type', '')).endswith('fileAttachment')
                         name = a.get('name') or 'angebot.pdf'
@@ -211,7 +215,7 @@ def poll_graph_once(app):
                     db.session.add(_mk())
                 db.session.commit()
 
-                _api('PATCH', f'/users/{mbox}/messages/{mid}', token, {'isRead': True})
+                _api('PATCH', f'/users/{mbox}/messages/{mid_q}', token, {'isRead': True})
                 imported += 1
                 try:
                     from .notifications import notify_new_quote
