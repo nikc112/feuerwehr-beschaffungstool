@@ -734,6 +734,17 @@ tr:last-child td{border-bottom:none;}
         <div class="field"><label>Anwendungs-(Client-)ID</label><input type="text" id="st-m365-client" placeholder="GUID" /></div>
         <div class="field"><label>Client-Secret</label><input type="password" id="st-m365-secret" autocomplete="new-password" placeholder="●●●●●● (leer lassen = unverändert)" /></div>
         <div class="field"><label>Postfach (Absender/Empfang)</label><input type="email" id="st-m365-mailbox" placeholder="beschaffung@deine-domain.de" /></div>
+        <div class="field">
+          <label>Abrufintervall (Minuten)</label>
+          <select id="st-m365-interval">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="25">25</option>
+            <option value="30">30</option>
+          </select>
+        </div>
       </div>
       <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="pollImapNow()" id="m365-poll-btn"><i class="ti ti-refresh"></i> Jetzt abrufen (Test)</button>
@@ -1699,6 +1710,9 @@ async function loadSettingsTab() {
   document.getElementById('st-m365-secret').value = '';
   document.getElementById('st-m365-secret').placeholder = d.m365_client_secret ? '●●●●●● (leer lassen = unverändert)' : 'Client-Secret eingeben';
   document.getElementById('st-m365-mailbox').value = d.m365_mailbox || '';
+  const ivSel = document.getElementById('st-m365-interval');
+  ivSel.value = String(d.imap_interval || '15');
+  if (!ivSel.value) ivSel.value = '15';   // Fallback, falls gespeicherter Wert nicht in der Liste
   onMailProviderChange();
   if (Array.isArray(d.vergabe_tiers)) window.VERGABE_TIERS = d.vergabe_tiers;
   renderVergabeEditor(window.VERGABE_TIERS);
@@ -2026,6 +2040,7 @@ async function saveM365() {
     m365_client_id: document.getElementById('st-m365-client').value.trim(),
     m365_client_secret: document.getElementById('st-m365-secret').value,
     m365_mailbox: document.getElementById('st-m365-mailbox').value.trim(),
+    imap_interval: document.getElementById('st-m365-interval').value,
   };
   const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
   if (r.ok) { showToast('Microsoft-365-Einstellungen gespeichert.'); document.getElementById('st-m365-secret').value = ''; }
