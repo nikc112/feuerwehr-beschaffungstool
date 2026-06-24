@@ -127,6 +127,10 @@ def poll_imap_once(app):
                             if payload:
                                 ts = int(time.time())
                                 safe_name = re.sub(r'[^\w.\-]', '_', orig_name)
+                                # Endung auf .pdf erzwingen (Schutz vor aktiver
+                                # Endung wie .html/.svg beim spaeteren Ausliefern)
+                                if not safe_name.lower().endswith('.pdf'):
+                                    safe_name += '.pdf'
                                 safe = f'email_{ts}_{safe_name}'
                                 fpath = os.path.join(upload_dir, safe)
                                 with open(fpath, 'wb') as fh:

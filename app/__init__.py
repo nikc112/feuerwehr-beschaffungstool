@@ -7,6 +7,37 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 
 
+def _resolve_secret_key(data_dir):
+    """Sicheren SECRET_KEY liefern.
+
+    Bevorzugt die ENV-Variable. Ist keine (oder nur der unsichere Platzhalter)
+    gesetzt, wird ein persistenter Zufallsschlüssel im data-Verzeichnis erzeugt
+    und wiederverwendet (Sessions überleben Neustarts). So gibt es keinen
+    schwachen, bekannten Default-Schlüssel mehr.
+    """
+    import secrets
+    key = os.environ.get('SECRET_KEY')
+    if key and key not in ('bitte-aendern', 'bitte-aendern-mit-langem-zufallswert'):
+        return key
+    path = os.path.join(data_dir, 'secret_key')
+    try:
+        if os.path.exists(path):
+            with open(path) as fh:
+                existing = fh.read().strip()
+            if existing:
+                return existing
+        generated = secrets.token_hex(32)
+        with open(path, 'w') as fh:
+            fh.write(generated)
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
+        return generated
+    except OSError:
+        return secrets.token_hex(32)
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -15,7 +46,7 @@ def create_app():
     os.makedirs(os.path.join(data_dir, 'uploads'), exist_ok=True)
     os.makedirs(os.path.join(data_dir, 'branding'), exist_ok=True)
 
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bitte-aendern')
+    app.config['SECRET_KEY'] = _resolve_secret_key(data_dir)
     app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(data_dir, 'database.db')}"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'connect_args': {'timeout': 30}}
@@ -23,6 +54,23 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = os.path.join(data_dir, 'uploads')
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    # "Remember me"-Cookie ebenfalls absichern (sonst CSRF-Vektor, da ohne SameSite
+    # cross-site mitgesendet). Secure-Flags per ENV aktivieren, wenn hinter HTTPS.
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+    _secure = os.environ.get('COOKIE_SECURE', '').lower() == 'true'
+    app.config['SESSION_COOKIE_SECURE'] = _secure
+    app.config['REMEMBER_COOKIE_SECURE'] = _secure
+
+    # Hinter einem Reverse-Proxy die echte Client-IP aus X-Forwarded-* übernehmen
+    # (wichtig für korrektes Rate-Limiting). Default 0 = kein Proxy vertrauen.
+    try:
+        _proxies = int(os.environ.get('TRUSTED_PROXIES', '0') or 0)
+    except ValueError:
+        _proxies = 0
+    if _proxies > 0:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=_proxies, x_proto=_proxies, x_host=_proxies)
 
     db.init_app(app)
     login_manager.init_app(app)

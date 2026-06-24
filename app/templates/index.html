@@ -2000,7 +2000,7 @@ async function loadUsersTab() {
           + '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin</option>'
         + '</select>';
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td data-label="Benutzername" style="font-weight:500;">' + u.username + (isMe ? ' <span style="font-size:11px;color:var(--text2);">(du)</span>' : '') + '</td>'
+    tr.innerHTML = '<td data-label="Benutzername" style="font-weight:500;">' + esc(u.username) + (isMe ? ' <span style="font-size:11px;color:var(--text2);">(du)</span>' : '') + '</td>'
       + '<td data-label="Rolle">' + roleCell + '</td>'
       + '<td data-label="E-Mail"><input type="email" value="' + esc(u.email || '') + '" placeholder="keine" onchange="changeUserEmail(' + u.id + ', this.value)" style="font-size:12px;padding:5px 8px;width:100%;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);"></td>'
       + '<td data-label="Info" style="text-align:center;"><input type="checkbox"' + (u.notify ? ' checked' : '') + ' onchange="changeUserNotify(' + u.id + ', this.checked)" style="width:16px;height:16px;accent-color:var(--ff-blue);cursor:pointer;"></td>'
@@ -2126,10 +2126,10 @@ async function openAngebotModal(proposal) {
     card.className = 'lieferant-card';
     card.id = 'card-' + l.id;
     card.innerHTML = '<label><input type="checkbox" id="chk-' + l.id + '" onchange="toggleCard(' + l.id + ')">'
-      + '<div><div class="lieferant-name">' + l.name + (l.test ? '<span class="test-badge">Test</span>' : '') + '</div>'
-      + '<div class="lieferant-detail"><i class="ti ti-user" style="font-size:11px;"></i> ' + (l.ansprechpartner || l.name)
-      + (l.tel ? ' · <i class="ti ti-phone" style="font-size:11px;"></i> ' + l.tel : '')
-      + '<br><i class="ti ti-mail" style="font-size:11px;"></i> ' + l.email + '</div></div></label>';
+      + '<div><div class="lieferant-name">' + esc(l.name) + (l.test ? '<span class="test-badge">Test</span>' : '') + '</div>'
+      + '<div class="lieferant-detail"><i class="ti ti-user" style="font-size:11px;"></i> ' + esc(l.ansprechpartner || l.name)
+      + (l.tel ? ' · <i class="ti ti-phone" style="font-size:11px;"></i> ' + esc(l.tel) : '')
+      + '<br><i class="ti ti-mail" style="font-size:11px;"></i> ' + esc(l.email) + '</div></div></label>';
     liste.appendChild(card);
   });
   const btn = document.getElementById('btn-send-angebot');
@@ -2287,7 +2287,7 @@ function openDetailModal(proposal) {
     filesEl.innerHTML = proposal.files.map(f =>
       '<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px;">'
       + '<i class="ti ti-file-type-pdf" style="color:var(--ff-red);flex-shrink:0;"></i>'
-      + '<a href="/api/uploads/' + encodeURIComponent(f.path) + '" target="_blank" rel="noopener" style="color:var(--ff-blue);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + f.name + '">' + f.name + '</a>'
+      + '<a href="/api/uploads/' + encodeURIComponent(f.path) + '" target="_blank" rel="noopener" style="color:var(--ff-blue);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(f.name) + '">' + esc(f.name) + '</a>'
       + '<span style="color:var(--text2);flex-shrink:0;">(' + (f.size/1024).toFixed(0) + ' KB)</span>'
       + '<a href="/api/uploads/' + encodeURIComponent(f.path) + '" target="_blank" rel="noopener" title="Öffnen" style="color:var(--text2);line-height:1;"><i class="ti ti-external-link" style="font-size:13px;"></i></a>'
       + '</div>'
@@ -2314,6 +2314,9 @@ function openDetailModal(proposal) {
   document.getElementById('dm-add-alt-btn').style.display = isBes ? '' : 'none';
   document.getElementById('dm-add-quote-btn').style.display = isBes ? '' : 'none';
   document.getElementById('dm-geplant-row').style.display = isBes ? '' : 'none';
+  // Bearbeiten/Versenden nur für Beschaffer (serverseitig ebenfalls erzwungen)
+  document.getElementById('dm-save-btn').style.display = isBes ? '' : 'none';
+  document.querySelector('#detail-modal-overlay .btn-angebot').style.display = isBes ? '' : 'none';
 
   // Load alternatives and quotes asynchronously
   loadAlternatives(proposal.nr).then(alts => {
@@ -2797,12 +2800,12 @@ function renderList() {
       const v = getVergabe(d.kosten);
       const hm = [d.hersteller,d.modell].filter(Boolean).join(' / ');
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td data-label="Nr." style="font-weight:600;color:var(--ff-blue);font-size:12px;">'+d.nr+'</td>'
-        +'<td data-label="Bezeichnung">'+d.bezeichnung+(d.files&&d.files.length?' <i class="ti ti-paperclip" style="font-size:11px;color:var(--text2);" title="'+d.files.length+' Anhang/Anhänge"></i>':'')+'</td>'
-        +'<td data-label="Hersteller / Modell" style="font-size:12px;color:var(--text2);">'+(hm||'—')+'</td>'
-        +'<td data-label="Kategorie" style="font-size:12px;">'+d.kategorie+'</td>'
+      tr.innerHTML = '<td data-label="Nr." style="font-weight:600;color:var(--ff-blue);font-size:12px;">'+esc(d.nr)+'</td>'
+        +'<td data-label="Bezeichnung">'+esc(d.bezeichnung)+(d.files&&d.files.length?' <i class="ti ti-paperclip" style="font-size:11px;color:var(--text2);" title="'+d.files.length+' Anhang/Anhänge"></i>':'')+'</td>'
+        +'<td data-label="Hersteller / Modell" style="font-size:12px;color:var(--text2);">'+(esc(hm)||'—')+'</td>'
+        +'<td data-label="Kategorie" style="font-size:12px;">'+esc(d.kategorie)+'</td>'
         +'<td data-label="Kosten" style="text-align:right;">'+(d.kosten||0).toLocaleString('de-DE')+' €</td>'
-        +'<td data-label="Priorität"><span class="prio-badge '+prioClass(d.prioritaet)+'">'+d.prioritaet+'</span></td>'
+        +'<td data-label="Priorität"><span class="prio-badge '+prioClass(d.prioritaet)+'">'+esc(d.prioritaet)+'</span></td>'
         +'<td data-label="Geplant" style="font-size:12px;">'+(d.geplanter_zeitpunkt ? esc(d.geplanter_zeitpunkt) : '<span style="color:var(--text2);">—</span>')+'</td>'
         +'<td data-label="Vergabeverfahren"><span class="vergabe-badge '+v.cls+'"><i class="ti '+v.icon+'" style="font-size:12px;"></i> '+v.label+'</span></td>'
         +'<td data-label="Ablauf"><div style="display:flex;gap:4px;">'+ablaufDots(d.ablauf)+'</div></td>'

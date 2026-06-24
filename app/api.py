@@ -15,6 +15,7 @@ from . import db
 from .email_service import send_email
 from .notifications import notify_new_proposal
 from .email_view import parse_email, render_email_page
+from .ratelimit import rate_limit
 
 api_bp = Blueprint('api', __name__)
 
@@ -132,6 +133,14 @@ def beschaffer_required(f):
     return decorated
 
 
+def _is_pdf_upload(f):
+    """Nur echte PDFs akzeptieren: Content-Type UND .pdf-Endung (gegen XSS via
+    gefälschtem Content-Type + aktiver Dateiendung wie .html/.svg)."""
+    return bool(f and f.filename
+                and f.content_type == 'application/pdf'
+                and f.filename.lower().endswith('.pdf'))
+
+
 def _next_nr():
     year = datetime.now().year
     proposals = Proposal.query.filter(Proposal.nr.like(f'%/{year}')).all()
@@ -148,6 +157,7 @@ def _next_nr():
 # ── PROPOSALS ──────────────────────────────────────────────────────────────────
 
 @api_bp.route('/proposals', methods=['POST'])
+@rate_limit(20, 600, 'submit')   # max. 20 Einreichungen / 10 min / IP
 def create_proposal():
     # Public endpoint by design — no login required, proposals go into pending status for approval
     ct = request.content_type or ''
@@ -195,8 +205,10 @@ def create_proposal():
 
     upload_folder = current_app.config['UPLOAD_FOLDER']
     for f in files:
-        if f.filename and f.content_type == 'application/pdf':
+        if _is_pdf_upload(f):
             filename = secure_filename(f.filename)
+            if not filename.lower().endswith('.pdf'):
+                filename += '.pdf'
             safe_name = f'{nr.replace("/", "-")}_{filename}'
             filepath = os.path.join(upload_folder, safe_name)
             f.save(filepath)
@@ -237,7 +249,7 @@ def list_proposals():
 
 
 @api_bp.route('/proposals/<path:nr>', methods=['PUT'])
-@login_required
+@beschaffer_required
 def update_proposal(nr):
     proposal = Proposal.query.filter_by(nr=nr).first_or_404()
     data = request.get_json() or {}
@@ -425,8 +437,10 @@ def create_quote(nr):
     # Handle optional PDF upload
     if request.content_type and 'multipart/form-data' in request.content_type:
         pdf = request.files.get('pdf')
-        if pdf and pdf.filename and pdf.content_type == 'application/pdf':
+        if _is_pdf_upload(pdf):
             filename = secure_filename(pdf.filename)
+            if not filename.lower().endswith('.pdf'):
+                filename += '.pdf'
             safe_name = f'quote_{nr.replace("/", "-")}_{filename}'
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], safe_name)
             pdf.save(filepath)
@@ -508,7 +522,23 @@ def download_quote_email(quote_id):
 @api_bp.route('/uploads/<path:filename>', methods=['GET'])
 @login_required
 def get_upload(filename):
-    return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+    # Betrachter dürfen nur Dateien sehen, die zu GENEHMIGTEN Vorschlägen gehören.
+    if current_user.role not in ('beschaffer', 'admin'):
+        att = Attachment.query.filter_by(filepath=filename).first()
+        quote = Quote.query.filter(
+            (Quote.filepath == filename) | (Quote.eml_path == filename)
+        ).first()
+        nr = att.proposal_nr if att else (quote.proposal_nr if quote else None)
+        if not nr:
+            abort(404)
+        p = Proposal.query.filter_by(nr=nr).first()
+        if not p or p.status != 'approved':
+            abort(403)
+    resp = make_response(send_from_directory(current_app.config['UPLOAD_FOLDER'], filename))
+    # Kein MIME-Sniffing; verhindert, dass eine Datei als aktiver Inhalt
+    # (z. B. HTML) interpretiert wird, falls doch eine unerwartete Endung vorliegt.
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    return resp
 
 
 # ── SUPPLIERS ──────────────────────────────────────────────────────────────────
@@ -521,7 +551,7 @@ def list_suppliers():
 
 
 @api_bp.route('/suppliers', methods=['POST'])
-@login_required
+@beschaffer_required
 def create_supplier():
     data = request.get_json() or {}
     name = (data.get('name') or '').strip()
@@ -541,7 +571,7 @@ def create_supplier():
 
 
 @api_bp.route('/suppliers/<int:sid>', methods=['PUT'])
-@login_required
+@beschaffer_required
 def update_supplier(sid):
     supplier = Supplier.query.get_or_404(sid)
     data = request.get_json() or {}
@@ -558,7 +588,7 @@ def update_supplier(sid):
 
 
 @api_bp.route('/suppliers/<int:sid>', methods=['DELETE'])
-@login_required
+@beschaffer_required
 def delete_supplier(sid):
     supplier = Supplier.query.get_or_404(sid)
     db.session.delete(supplier)

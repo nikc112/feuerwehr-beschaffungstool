@@ -37,6 +37,5 @@ def test_betrachter_cannot_set_zeitpunkt(app, client, monkeypatch):
     _make_user(app, 'betrachter', 'bet')
     client.post('/api/auth/login', json={'username': 'bet', 'password': 'secret123'})
     r = client.put('/api/proposals/' + nr, json={'geplanter_zeitpunkt': '2028'})
-    assert r.status_code == 200
-    # Feld bleibt leer – Betrachter darf den Zeitpunkt nicht setzen
-    assert r.get_json()['geplanter_zeitpunkt'] == ''
+    # Betrachter darf den Bearbeiten-Endpoint gar nicht aufrufen (beschaffer_required)
+    assert r.status_code == 403

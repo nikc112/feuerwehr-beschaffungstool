@@ -2,11 +2,13 @@ from flask import Blueprint, request, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from .models import User
 from . import db
+from .ratelimit import rate_limit
 
 auth_bp = Blueprint('auth', __name__)
 
 
 @auth_bp.route('/login', methods=['POST'])
+@rate_limit(30, 300, 'login')   # max. 30 Versuche / 5 min / IP
 def login():
     data = request.get_json() or {}
     ident = (data.get('username') or '').strip()

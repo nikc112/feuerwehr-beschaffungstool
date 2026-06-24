@@ -15,7 +15,18 @@ def _get_smtp_setting(db_key: str, env_key: str, default: str = '') -> str:
     return os.environ.get(env_key, default)
 
 
+def _clean_header(value: str) -> str:
+    """CR/LF (und Tabs) aus Header-Werten entfernen – verhindert Header-Injection."""
+    return ' '.join(str(value or '').splitlines()).replace('\t', ' ').strip()
+
+
 def send_email(to_email: str, to_name: str, subject: str, body: str):
+    to_email = _clean_header(to_email)
+    to_name = _clean_header(to_name)
+    subject = _clean_header(subject)
+    # Empfängeradresse muss plausibel sein (genau eine Adresse, keine Steuerzeichen)
+    if not to_email or ' ' in to_email or '@' not in to_email:
+        raise ValueError(f'Ungültige Empfängeradresse: {to_email!r}')
     host = _get_smtp_setting('smtp_host', 'SMTP_HOST', '')
     port = int(_get_smtp_setting('smtp_port', 'SMTP_PORT', '587'))
     user = _get_smtp_setting('smtp_user', 'SMTP_USER', '')
