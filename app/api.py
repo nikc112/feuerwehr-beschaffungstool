@@ -181,6 +181,9 @@ def create_proposal():
 
     if not (form.get('bezeichnung') or '').strip():
         return jsonify({'error': 'Bezeichnung erforderlich'}), 400
+    einreicher_email = (form.get('einreicher_email') or '').strip()
+    if '@' not in einreicher_email or '.' not in einreicher_email.split('@')[-1]:
+        return jsonify({'error': 'Gültige E-Mail-Adresse des Einreichers erforderlich'}), 400
 
     nr = _next_nr()
     proposal = Proposal(
@@ -198,7 +201,7 @@ def create_proposal():
         prioritaet=form.get('prioritaet') or '—',
         ablauf=json.dumps(ablauf),
         einreicher_name=(form.get('einreicher_name') or '').strip(),
-        einreicher_email=(form.get('einreicher_email') or '').strip(),
+        einreicher_email=einreicher_email,
         einreicher_tel=(form.get('einreicher_tel') or '').strip(),
     )
     db.session.add(proposal)
@@ -880,8 +883,10 @@ def update_settings():
             continue
         if key in ('smtp_password', 'imap_password', 'm365_client_secret') and (not value or value == _MASK):
             continue
-        Settings.set(key, value or '')
-        _changed.append(key)
+        new_val = value or ''
+        if Settings.get(key) != new_val:          # nur echte Änderungen protokollieren
+            _changed.append(key)
+        Settings.set(key, new_val)
     db.session.commit()
     if 'vergabe_tiers' in data:
         _changed.append('vergabe_tiers')

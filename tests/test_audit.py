@@ -1,6 +1,7 @@
 def _create_proposal(client, monkeypatch, bez='Kamera'):
     monkeypatch.setattr('app.api.notify_new_proposal', lambda *a, **k: None)
-    return client.post('/api/proposals', data={'bezeichnung': bez},
+    return client.post('/api/proposals',
+                       data={'bezeichnung': bez, 'einreicher_email': 'melder@example.com'},
                        content_type='multipart/form-data').get_json()['nr']
 
 
@@ -29,6 +30,14 @@ def test_audit_settings_logs_keys_not_secret(app, auth_client):
     s = next(e for e in log if e['action'] == 'settings.update')
     assert 'SUPERSECRET' not in s['details']       # Geheimwert NICHT protokollieren
     assert 'm365_client_secret' in s['details']    # nur der Schlüsselname
+
+
+def test_audit_settings_logs_only_real_changes(app, auth_client):
+    auth_client.put('/api/settings', json={'brand_name': 'Foo'})
+    n1 = sum(1 for e in auth_client.get('/api/audit').get_json() if e['action'] == 'settings.update')
+    auth_client.put('/api/settings', json={'brand_name': 'Foo'})   # identisch → keine Änderung
+    n2 = sum(1 for e in auth_client.get('/api/audit').get_json() if e['action'] == 'settings.update')
+    assert n2 == n1
 
 
 def test_audit_filter_by_action_and_text(app, auth_client, monkeypatch):

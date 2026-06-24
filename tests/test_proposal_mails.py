@@ -29,8 +29,15 @@ def test_approve_sends_mail_to_submitter(app, auth_client, monkeypatch):
 
 def test_approve_without_email_skips_mail(app, auth_client, monkeypatch):
     sent = _capture_mail(monkeypatch)
-    nr = _create_proposal(auth_client, monkeypatch, email=None)
-    r = auth_client.post('/api/proposals/' + nr + '/approve')
+    # E-Mail ist beim Einreichen Pflicht; einen Vorschlag ohne E-Mail (z. B. Altbestand)
+    # legen wir direkt im Modell an, um den "kein Versand"-Pfad zu testen.
+    from app import db
+    from app.models import Proposal
+    with app.app_context():
+        db.session.add(Proposal(nr='99/2026', bezeichnung='Altfall', status='pending',
+                                einreicher_name='Ohne Mail', einreicher_email=''))
+        db.session.commit()
+    r = auth_client.post('/api/proposals/99%2F2026/approve')
     assert r.status_code == 200
     assert r.get_json()['notified'] is False
     assert r.get_json()['status'] == 'approved'

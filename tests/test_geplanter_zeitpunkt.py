@@ -10,7 +10,8 @@ def _make_user(app, role, username):
 
 def _create_proposal(client, monkeypatch):
     monkeypatch.setattr('app.api.notify_new_proposal', lambda *a, **k: None)
-    r = client.post('/api/proposals', data={'bezeichnung': 'Wärmebildkamera'},
+    r = client.post('/api/proposals',
+                    data={'bezeichnung': 'Wärmebildkamera', 'einreicher_email': 'melder@example.com'},
                     content_type='multipart/form-data')
     return r.get_json()['nr']
 

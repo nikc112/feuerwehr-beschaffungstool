@@ -17,7 +17,7 @@ def _login(client, name):
 
 def _create_proposal(client, monkeypatch, **extra):
     monkeypatch.setattr('app.api.notify_new_proposal', lambda *a, **k: None)
-    data = {'bezeichnung': 'X'}
+    data = {'bezeichnung': 'X', 'einreicher_email': 'melder@example.com'}
     data.update(extra)
     r = client.post('/api/proposals', data=data, content_type='multipart/form-data')
     return r.get_json()['nr']

@@ -328,8 +328,9 @@ tr:last-child td{border-bottom:none;}
         <div class="field-error" id="err-einreicher-name">Pflichtfeld – bitte ausfüllen</div>
       </div>
       <div class="field">
-        <label>E-Mail</label>
-        <input type="email" id="f-einreicher-email" placeholder="name@beispiel.de" />
+        <label>E-Mail<span class="required-star">*</span></label>
+        <input type="email" id="f-einreicher-email" placeholder="name@beispiel.de" oninput="clearError('einreicher-email')" />
+        <div class="field-error" id="err-einreicher-email">Gültige E-Mail-Adresse erforderlich</div>
       </div>
       <div class="field">
         <label>Handynummer</label>
@@ -552,12 +553,12 @@ tr:last-child td{border-bottom:none;}
   <div class="table-wrap" style="overflow-x:auto;margin-bottom:24px;">
     <table class="card-table">
       <thead><tr>
-        <th>Benutzername</th>
+        <th style="width:200px;">Benutzername</th>
         <th style="width:130px;">Rolle</th>
         <th>E-Mail</th>
         <th style="width:54px;">Info</th>
         <th style="width:96px;">Angelegt am</th>
-        <th style="width:60px;"></th>
+        <th style="width:96px;"></th>
       </tr></thead>
       <tbody id="benutzer-tbody"></tbody>
     </table>
@@ -2963,15 +2964,20 @@ function validateForm() {
     const el = document.getElementById('f-' + f);
     if (!el.value.trim()) { el.classList.add('error'); document.getElementById('err-' + f).classList.add('show'); ok = false; }
   });
+  // E-Mail ist Pflicht und muss ein gültiges Format haben
+  const em = document.getElementById('f-einreicher-email');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value.trim())) {
+    em.classList.add('error'); document.getElementById('err-einreicher-email').classList.add('show'); ok = false;
+  }
   return ok;
 }
 
 function getSelectedKategorien() { return [...document.querySelectorAll('#cat-grid input:checked')].map(i => i.value); }
 
 function resetForm() {
-  ['einreicher-name','bezeichnung'].forEach(f => { const el = document.getElementById('f-'+f); el.value = ''; el.classList.remove('error'); document.getElementById('err-'+f).classList.remove('show'); });
+  ['einreicher-name','bezeichnung','einreicher-email'].forEach(f => { const el = document.getElementById('f-'+f); el.value = ''; el.classList.remove('error'); document.getElementById('err-'+f).classList.remove('show'); });
   ['hersteller','modell'].forEach(f => { document.getElementById('f-'+f).value = ''; });
-  ['f-einreicher-email','f-einreicher-tel'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('f-einreicher-tel').value = '';
   ['sachverhalt','risiken','kosten'].forEach(f => document.getElementById('f-'+f).value = '');
   document.querySelectorAll('#cat-grid input,#anlass-grid input').forEach(i => i.checked = false);
   ['kreis','land','verein','sonst'].forEach(k => document.getElementById('f-foerd-'+k).checked = false);
