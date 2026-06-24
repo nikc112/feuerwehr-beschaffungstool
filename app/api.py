@@ -258,6 +258,10 @@ def update_proposal(nr):
             proposal.kosten = float(data['kosten'])
         except (ValueError, TypeError):
             pass
+    if 'hersteller' in data:
+        proposal.hersteller = (data['hersteller'] or '').strip()
+    if 'modell' in data:
+        proposal.modell = (data['modell'] or '').strip()
     if 'beschaffungsart' in data:
         proposal.beschaffungsart = (data['beschaffungsart'] or '').strip()
     if 'ablauf' in data:

@@ -883,6 +883,17 @@ tr:last-child td{border-bottom:none;}
       <!-- Interne Bearbeitung -->
       <div style="border:2px solid var(--ff-blue);border-radius:var(--radius);padding:16px;">
         <span class="section-label" style="margin-bottom:14px;display:inline-block;">Interne Bearbeitung (Beschaffer)</span>
+        <!-- Produktdaten nachpflegen (z. B. Marke/Modell, falls beim Einreichen leer) -->
+        <div class="form-row cols2" style="margin-bottom:12px;" id="dm-produkt-row">
+          <div class="field">
+            <label>Hersteller / Marke</label>
+            <input type="text" id="dm-hersteller" placeholder="z. B. FLIR" />
+          </div>
+          <div class="field">
+            <label>Modell / Typ</label>
+            <input type="text" id="dm-modell" placeholder="z. B. K33" />
+          </div>
+        </div>
         <!-- Geplanter Beschaffungszeitpunkt -->
         <div class="form-row cols2" style="margin-bottom:12px;" id="dm-geplant-row">
           <div class="field">
@@ -2307,6 +2318,8 @@ function openDetailModal(proposal) {
   document.getElementById('dm-menge').value = proposal.menge || 1;
   document.getElementById('dm-stueckpreis').value = proposal.stueckpreis_geschaetzt || '';
   document.getElementById('dm-geplant').value = proposal.geplanter_zeitpunkt || '';
+  document.getElementById('dm-hersteller').value = proposal.hersteller || '';
+  document.getElementById('dm-modell').value = proposal.modell || '';
   updateGesamtpreis();
 
   // Show/hide beschaffer-only elements
@@ -2314,6 +2327,7 @@ function openDetailModal(proposal) {
   document.getElementById('dm-add-alt-btn').style.display = isBes ? '' : 'none';
   document.getElementById('dm-add-quote-btn').style.display = isBes ? '' : 'none';
   document.getElementById('dm-geplant-row').style.display = isBes ? '' : 'none';
+  document.getElementById('dm-produkt-row').style.display = isBes ? '' : 'none';
   // Bearbeiten/Versenden nur für Beschaffer (serverseitig ebenfalls erzwungen)
   document.getElementById('dm-save-btn').style.display = isBes ? '' : 'none';
   document.querySelector('#detail-modal-overlay .btn-angebot').style.display = isBes ? '' : 'none';
@@ -2610,6 +2624,8 @@ async function saveDetail() {
     menge: parseInt(document.getElementById('dm-menge').value) || 1,
     stueckpreis_geschaetzt: parseFloat(document.getElementById('dm-stueckpreis').value) || null,
     geplanter_zeitpunkt: document.getElementById('dm-geplant').value.trim(),
+    hersteller: document.getElementById('dm-hersteller').value.trim(),
+    modell: document.getElementById('dm-modell').value.trim(),
   };
   try {
     const r = await fetch('/api/proposals/' + encodeURIComponent(currentDetailProposal.nr), {
