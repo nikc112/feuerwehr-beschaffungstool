@@ -52,6 +52,17 @@ def _save_raw_email(upload_dir, raw_email, ts):
     return safe
 
 
+def poll_mail_once(app):
+    """Abruf je nach Verbindungsart: Microsoft 365 (Graph) oder IMAP."""
+    with app.app_context():
+        from .models import Settings
+        provider = Settings.get('mail_provider') or 'smtp'
+    if provider == 'm365':
+        from .graph_mail import poll_graph_once
+        return poll_graph_once(app)
+    return poll_imap_once(app)
+
+
 def poll_imap_once(app):
     with app.app_context():
         from . import db
@@ -205,9 +216,9 @@ def start_imap_worker(app):
             interval_sec = max(1, interval_min) * 60
 
             try:
-                poll_imap_once(app)
+                poll_mail_once(app)
             except Exception as e:
-                logger.error('IMAP worker loop error: %s', e)
+                logger.error('Mail worker loop error: %s', e)
 
             time.sleep(interval_sec)
 

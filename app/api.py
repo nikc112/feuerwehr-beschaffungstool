@@ -687,6 +687,7 @@ def update_user(uid):
 _SMTP_KEYS = ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from', 'smtp_tls')
 _TEMPLATE_KEYS = ('email_subject', 'email_body')
 _IMAP_KEYS = ('imap_host', 'imap_port', 'imap_user', 'imap_password', 'imap_folder', 'imap_ssl', 'imap_enabled', 'imap_interval')
+_M365_KEYS = ('mail_provider', 'm365_tenant', 'm365_client_id', 'm365_client_secret', 'm365_mailbox')
 _FORM_KEYS = ('form_heading', 'form_intro')
 _BRAND_KEYS = ('brand_name', 'brand_subtitle', 'brand_address', 'brand_color_primary',
                'brand_color_accent', 'brand_color_bg')
@@ -697,9 +698,10 @@ _PROPOSAL_MAIL_KEYS = ('approve_subject', 'approve_body', 'reject_subject', 'rej
 @admin_required
 def get_settings():
     result = {}
-    for key in _SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS + _PROPOSAL_MAIL_KEYS:
+    for key in (_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS
+                + _PROPOSAL_MAIL_KEYS + _M365_KEYS):
         val = Settings.get(key)
-        if key in ('smtp_password', 'imap_password'):
+        if key in ('smtp_password', 'imap_password', 'm365_client_secret'):
             result[key] = _MASK if val else ''
         else:
             result[key] = val
@@ -759,11 +761,12 @@ def update_settings():
             } for t in tv]
             Settings.set('vergabe_tiers', json.dumps(cleaned, ensure_ascii=False))
 
-    allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS + _PROPOSAL_MAIL_KEYS)
+    allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS
+                  + _PROPOSAL_MAIL_KEYS + _M365_KEYS)
     for key, value in data.items():
         if key not in allowed:
             continue
-        if key in ('smtp_password', 'imap_password') and (not value or value == _MASK):
+        if key in ('smtp_password', 'imap_password', 'm365_client_secret') and (not value or value == _MASK):
             continue
         Settings.set(key, value or '')
     db.session.commit()
@@ -844,9 +847,9 @@ def delete_branding_logo():
 @api_bp.route('/imap/poll', methods=['POST'])
 @beschaffer_required
 def manual_imap_poll():
-    from .imap_worker import poll_imap_once
+    from .imap_worker import poll_mail_once
     from flask import current_app
-    result = poll_imap_once(current_app._get_current_object())
+    result = poll_mail_once(current_app._get_current_object())
     if 'error' in result:
         return jsonify(result), 502
     return jsonify(result)

@@ -707,8 +707,44 @@ tr:last-child td{border-bottom:none;}
   <!-- ░░░ PANE: E-MAIL (SMTP/IMAP/Vorlage) ░░░ -->
   <div class="settings-pane" data-pane="email" style="display:none;">
 
-  <!-- SMTP -->
+  <!-- VERBINDUNGSART -->
   <div class="form-section" style="margin-bottom:24px;">
+    <span class="section-label">Verbindungsart</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div class="field" style="max-width:420px;">
+        <label>E-Mail-Anbindung</label>
+        <select id="st-mail-provider" onchange="onMailProviderChange()">
+          <option value="smtp">IMAP / SMTP (Benutzer + Passwort)</option>
+          <option value="m365">Microsoft 365 (Graph / OAuth2)</option>
+        </select>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;font-size:12px;border:1px solid var(--border);margin-top:12px;">
+        <i class="ti ti-info-circle" style="color:var(--ff-blue);"></i>
+        Bei „Microsoft 365" laufen Versand und Abruf über Microsoft Graph (App-Registrierung in Entra ID nötig: Application-Berechtigungen <strong>Mail.Send</strong> + <strong>Mail.Read</strong> mit Admin-Zustimmung). Sonst klassisch über SMTP/IMAP.
+      </div>
+    </div>
+  </div>
+
+  <!-- MICROSOFT 365 (Graph) -->
+  <div class="form-section" id="m365-section" style="margin-bottom:24px;display:none;">
+    <span class="section-label">Microsoft 365 (Graph)</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div class="mgmt-add-grid">
+        <div class="field"><label>Verzeichnis-(Tenant-)ID</label><input type="text" id="st-m365-tenant" placeholder="z. B. contoso.onmicrosoft.com oder GUID" /></div>
+        <div class="field"><label>Anwendungs-(Client-)ID</label><input type="text" id="st-m365-client" placeholder="GUID" /></div>
+        <div class="field"><label>Client-Secret</label><input type="password" id="st-m365-secret" autocomplete="new-password" placeholder="●●●●●● (leer lassen = unverändert)" /></div>
+        <div class="field"><label>Postfach (Absender/Empfang)</label><input type="email" id="st-m365-mailbox" placeholder="beschaffung@deine-domain.de" /></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="pollImapNow()" id="m365-poll-btn"><i class="ti ti-refresh"></i> Jetzt abrufen (Test)</button>
+        <button class="btn-primary" onclick="saveM365()"><i class="ti ti-device-floppy"></i> Microsoft 365 speichern</button>
+      </div>
+      <div id="m365-poll-result" style="display:none;margin-top:10px;font-size:12px;padding:8px 12px;border-radius:var(--radius);background:var(--bg2);border:1px solid var(--border);"></div>
+    </div>
+  </div>
+
+  <!-- SMTP -->
+  <div class="form-section" id="smtp-section" style="margin-bottom:24px;">
     <span class="section-label">SMTP-Konfiguration</span>
     <div class="mgmt-add" style="margin-top:10px;">
       <div class="mgmt-add-grid">
@@ -747,7 +783,7 @@ tr:last-child td{border-bottom:none;}
   </div>
 
   <!-- IMAP -->
-  <div class="form-section" style="margin-top:24px;">
+  <div class="form-section" id="imap-section" style="margin-top:24px;">
     <span class="section-label">IMAP-Eingangspostfach (Antworten empfangen)</span>
     <div class="mgmt-add" style="margin-top:10px;">
       <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;font-size:12px;border:1px solid var(--border);margin-bottom:14px;">
@@ -1656,6 +1692,14 @@ async function loadSettingsTab() {
   document.getElementById('st-brand-bg').value = d.brand_color_bg || d._default_brand_color_bg || '#f5f7fa';
   document.getElementById('brand-logo-preview').src = '/api/branding/logo?ts=' + Date.now();
   _loadImapFields(d);
+  // Microsoft 365 / Verbindungsart
+  document.getElementById('st-mail-provider').value = d.mail_provider || 'smtp';
+  document.getElementById('st-m365-tenant').value = d.m365_tenant || '';
+  document.getElementById('st-m365-client').value = d.m365_client_id || '';
+  document.getElementById('st-m365-secret').value = '';
+  document.getElementById('st-m365-secret').placeholder = d.m365_client_secret ? '●●●●●● (leer lassen = unverändert)' : 'Client-Secret eingeben';
+  document.getElementById('st-m365-mailbox').value = d.m365_mailbox || '';
+  onMailProviderChange();
   if (Array.isArray(d.vergabe_tiers)) window.VERGABE_TIERS = d.vergabe_tiers;
   renderVergabeEditor(window.VERGABE_TIERS);
   showSettingsPane('erscheinungsbild');
@@ -1967,21 +2011,44 @@ async function saveImap() {
   else showToast('Fehler beim Speichern.');
 }
 
+// ── Microsoft 365 (Graph) ──
+function onMailProviderChange() {
+  const m365 = document.getElementById('st-mail-provider').value === 'm365';
+  document.getElementById('m365-section').style.display = m365 ? '' : 'none';
+  document.getElementById('smtp-section').style.display = m365 ? 'none' : '';
+  document.getElementById('imap-section').style.display = m365 ? 'none' : '';
+}
+
+async function saveM365() {
+  const payload = {
+    mail_provider: document.getElementById('st-mail-provider').value,
+    m365_tenant: document.getElementById('st-m365-tenant').value.trim(),
+    m365_client_id: document.getElementById('st-m365-client').value.trim(),
+    m365_client_secret: document.getElementById('st-m365-secret').value,
+    m365_mailbox: document.getElementById('st-m365-mailbox').value.trim(),
+  };
+  const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+  if (r.ok) { showToast('Microsoft-365-Einstellungen gespeichert.'); document.getElementById('st-m365-secret').value = ''; }
+  else showToast('Fehler beim Speichern.');
+}
+
 async function pollImapNow() {
-  const btn = document.getElementById('imap-poll-btn');
-  const result = document.getElementById('imap-poll-result');
+  // je nach Verbindungsart das sichtbare Button-/Ergebnis-Element verwenden
+  const m365 = document.getElementById('st-mail-provider').value === 'm365';
+  const btn = document.getElementById(m365 ? 'm365-poll-btn' : 'imap-poll-btn');
+  const result = document.getElementById(m365 ? 'm365-poll-result' : 'imap-poll-result');
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader-2"></i> Wird abgerufen…';
   result.style.display = 'none';
   const r = await fetch('/api/imap/poll', {method: 'POST'});
   btn.disabled = false;
-  btn.innerHTML = '<i class="ti ti-refresh"></i> Jetzt abrufen';
+  btn.innerHTML = '<i class="ti ti-refresh"></i> Jetzt abrufen' + (m365 ? ' (Test)' : '');
   const d = await r.json().catch(() => ({}));
   result.style.display = '';
   if (r.ok && !d.error) {
     if (d.skipped) {
       result.style.background = '#fef3e0';
-      result.textContent = 'IMAP deaktiviert oder nicht konfiguriert.';
+      result.textContent = 'Abruf deaktiviert oder nicht konfiguriert.';
     } else {
       result.style.background = '#eaf3de';
       result.textContent = `✓ ${d.checked} E-Mail(s) geprüft, ${d.imported} neues Angebot importiert.`;

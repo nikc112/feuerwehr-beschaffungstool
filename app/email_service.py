@@ -27,6 +27,12 @@ def send_email(to_email: str, to_name: str, subject: str, body: str):
     # Empfängeradresse muss plausibel sein (genau eine Adresse, keine Steuerzeichen)
     if not to_email or ' ' in to_email or '@' not in to_email:
         raise ValueError(f'Ungültige Empfängeradresse: {to_email!r}')
+
+    # Verbindungsart: Microsoft 365 (Graph) oder klassisch SMTP
+    if _get_smtp_setting('mail_provider', 'MAIL_PROVIDER', 'smtp') == 'm365':
+        from .graph_mail import send_mail as graph_send
+        graph_send(to_email, to_name, subject, body)
+        return
     host = _get_smtp_setting('smtp_host', 'SMTP_HOST', '')
     port = int(_get_smtp_setting('smtp_port', 'SMTP_PORT', '587'))
     user = _get_smtp_setting('smtp_user', 'SMTP_USER', '')
