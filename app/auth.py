@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 from .models import User
 from . import db
 from .ratelimit import rate_limit
+from .audit import log as audit_log
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -18,13 +19,16 @@ def login():
         user = User.query.filter(db.func.lower(User.email) == ident.lower()).first()
     if user and user.check_password(password):
         login_user(user, remember=True)
+        audit_log('auth.login', f'Benutzer {user.username}', 'Anmeldung erfolgreich')
         return jsonify({'user': user.to_dict()})
+    audit_log('auth.login_failed', '', f'Fehlgeschlagene Anmeldung für „{ident}"')
     return jsonify({'error': 'Ungültige Anmeldedaten'}), 401
 
 
 @auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
+    audit_log('auth.logout', f'Benutzer {current_user.username}', 'Abmeldung')
     logout_user()
     return jsonify({'ok': True})
 

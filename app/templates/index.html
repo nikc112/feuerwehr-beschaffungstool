@@ -288,6 +288,7 @@ tr:last-child td{border-bottom:none;}
   <button class="tab" onclick="showTab('lieferanten')" id="tab-lieferanten" style="display:none;"><i class="ti ti-building-store"></i> Lieferanten</button>
   <button class="tab" onclick="showTab('benutzer')" id="tab-benutzer" style="display:none;"><i class="ti ti-users"></i> Benutzer</button>
   <button class="tab" onclick="showTab('einstellungen')" id="tab-einstellungen" style="display:none;"><i class="ti ti-settings"></i> Einstellungen</button>
+  <button class="tab" onclick="showTab('protokoll')" id="tab-protokoll" style="display:none;"><i class="ti ti-history"></i> Protokoll</button>
 </div>
 
 <!-- ══════════════════ VIEW: NEUER VORSCHLAG ══════════════════ -->
@@ -847,6 +848,33 @@ tr:last-child td{border-bottom:none;}
   </div><!-- /pane vergabe -->
 </div>
 
+<!-- ══════════════════ VIEW: PROTOKOLL ══════════════════ -->
+<div class="content" id="view-protokoll" style="display:none;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <span style="font-size:18px;font-weight:600;color:var(--ff-blue);">Protokoll (Änderungsverlauf)</span>
+    <span style="font-size:13px;color:var(--text2);" id="audit-meta"></span>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="audit-filter" placeholder="Suchen (Benutzer, Aktion, Objekt, Details)…" oninput="renderAudit()" />
+    <select id="audit-action-filter" onchange="renderAudit()"><option value="">Alle Aktionen</option></select>
+    <button class="btn-secondary" onclick="loadAuditTab()"><i class="ti ti-refresh"></i> Aktualisieren</button>
+    <button class="btn-secondary" onclick="exportAuditCsv()"><i class="ti ti-download"></i> CSV</button>
+  </div>
+  <div class="table-wrap" style="overflow-x:auto;">
+    <table class="card-table">
+      <thead><tr>
+        <th style="width:140px;">Zeitpunkt</th>
+        <th style="width:120px;">Benutzer</th>
+        <th style="width:150px;">Aktion</th>
+        <th style="width:150px;">Objekt</th>
+        <th>Details</th>
+      </tr></thead>
+      <tbody id="audit-tbody"></tbody>
+    </table>
+  </div>
+  <div id="audit-empty" class="empty-state" style="display:none;">Keine Protokolleinträge.</div>
+</div>
+
 </div><!-- /.app-wrap -->
 
 <!-- ══════════════════ LIEFERANT EDIT MODAL ══════════════════ -->
@@ -866,6 +894,29 @@ tr:last-child td{border-bottom:none;}
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeEditSupplierModal()">Abbrechen</button>
       <button class="btn-primary" onclick="saveSupplier()"><i class="ti ti-device-floppy"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ BENUTZER BEARBEITEN MODAL ══════════════════ -->
+<div class="modal-overlay" id="user-edit-overlay">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <h3><i class="ti ti-pencil"></i> Benutzer bearbeiten</h3>
+      <button class="modal-close" onclick="closeEditUserModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-user-id" />
+      <div class="field" style="margin-bottom:12px;"><label>Benutzername<span class="required-star">*</span></label><input type="text" id="edit-user-name" autocomplete="off" /></div>
+      <div class="field"><label>Neues Passwort <span style="font-weight:400;color:var(--text2);">(min. 6 Zeichen – leer lassen = unverändert)</span></label><input type="password" id="edit-user-pass" autocomplete="new-password" placeholder="●●●●●●" /></div>
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;margin-top:12px;font-size:12px;border:1px solid var(--border);">
+        <i class="ti ti-info-circle" style="color:var(--ff-blue);"></i>
+        Rolle, E-Mail und Benachrichtigung änderst du direkt in der Tabelle.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeEditUserModal()">Abbrechen</button>
+      <button class="btn-primary" onclick="saveUserEdit()"><i class="ti ti-device-floppy"></i> Speichern</button>
     </div>
   </div>
 </div>
@@ -1190,8 +1241,8 @@ tr:last-child td{border-bottom:none;}
 <script>
 // ══════════════════ CONSTANTS ══════════════════
 const ABLAUF_ORDER = ["Markterkundung","Angebote eingeholt","Vorstandsbeschluss","Beschafft"];
-const PROTECTED_VIEWS = ['eingangskorb','list','lieferanten','benutzer','einstellungen'];
-const ALL_VIEWS = ['form','eingangskorb','list','login','lieferanten','benutzer','einstellungen'];
+const PROTECTED_VIEWS = ['eingangskorb','list','lieferanten','benutzer','einstellungen','protokoll'];
+const ALL_VIEWS = ['form','eingangskorb','list','login','lieferanten','benutzer','einstellungen','protokoll'];
 
 // ══════════════════ STATE ══════════════════
 let currentUser = null;
@@ -1239,6 +1290,7 @@ function updateTabVisibility() {
   const li = document.getElementById('tab-lieferanten');
   const be = document.getElementById('tab-benutzer');
   const ei = document.getElementById('tab-einstellungen');
+  const pr = document.getElementById('tab-protokoll');
   const hdrInfo = document.getElementById('hdr-info');
   const hdrUser = document.getElementById('hdr-user');
   if (currentUser) {
@@ -1246,6 +1298,7 @@ function updateTabVisibility() {
     li.style.display = '';
     be.style.display = isAdmin() ? '' : 'none';
     ei.style.display = isAdmin() ? '' : 'none';
+    pr.style.display = isAdmin() ? '' : 'none';
     hdrInfo.style.display = 'none';
     hdrUser.style.display = '';
     document.getElementById('hdr-username').textContent = currentUser.username;
@@ -1254,6 +1307,7 @@ function updateTabVisibility() {
     li.style.display = 'none';
     be.style.display = 'none';
     ei.style.display = 'none';
+    pr.style.display = 'none';
     hdrInfo.style.display = '';
     hdrUser.style.display = 'none';
   }
@@ -1345,7 +1399,7 @@ async function doSetup() {
 
 // ══════════════════ TABS ══════════════════
 function _activateTab(t) {
-  ['form','eingangskorb','list','lieferanten','benutzer','einstellungen'].forEach(id => {
+  ['form','eingangskorb','list','lieferanten','benutzer','einstellungen','protokoll'].forEach(id => {
     const el = document.getElementById('tab-' + id);
     if (el) el.className = 'tab' + (id === t ? ' active' : '');
   });
@@ -1375,6 +1429,7 @@ function showTab(t) {
   if (t === 'lieferanten') loadSuppliersTab();
   if (t === 'benutzer') loadUsersTab();
   if (t === 'einstellungen') loadSettingsTab();
+  if (t === 'protokoll') loadAuditTab();
 }
 
 // ══════════════════ PROPOSALS ══════════════════
@@ -2098,9 +2153,15 @@ async function loadUsersTab() {
       + '<td data-label="E-Mail"><input type="email" value="' + esc(u.email || '') + '" placeholder="keine" onchange="changeUserEmail(' + u.id + ', this.value)" style="font-size:12px;padding:5px 8px;width:100%;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);"></td>'
       + '<td data-label="Info" style="text-align:center;"><input type="checkbox"' + (u.notify ? ' checked' : '') + ' onchange="changeUserNotify(' + u.id + ', this.checked)" style="width:16px;height:16px;accent-color:var(--ff-blue);cursor:pointer;"></td>'
       + '<td data-label="Angelegt am" style="font-size:12px;color:var(--text2);">' + (u.created_at || '—') + '</td>'
-      + '<td data-label="">' + (isMe ? '' : '<button class="btn-danger" onclick="deleteUser(' + u.id + ')"><i class="ti ti-trash"></i></button>') + '</td>';
+      + '<td data-label="" style="white-space:nowrap;">'
+        + '<button class="btn-secondary user-edit-btn" data-id="' + u.id + '" data-username="' + esc(u.username) + '" style="padding:4px 8px;font-size:12px;margin-right:4px;" title="Benutzername/Passwort bearbeiten"><i class="ti ti-pencil"></i></button>'
+        + (isMe ? '' : '<button class="btn-danger" onclick="deleteUser(' + u.id + ')"><i class="ti ti-trash"></i></button>')
+        + '</td>';
     tbody.appendChild(tr);
   });
+  // Handler ohne Inline-Interpolation binden (Benutzername lebt nur als data-Attribut)
+  tbody.querySelectorAll('.user-edit-btn').forEach(b =>
+    b.addEventListener('click', () => openEditUserModal(b.dataset.id, b.dataset.username)));
 }
 
 async function changeUserRole(id, role) {
@@ -2138,6 +2199,40 @@ async function changeUserNotify(id, notify) {
   else { const e = await r.json().catch(() => ({})); showToast('Fehler: ' + (e.error || '')); loadUsersTab(); }
 }
 
+function openEditUserModal(id, username) {
+  document.getElementById('edit-user-id').value = id;
+  document.getElementById('edit-user-name').value = username || '';
+  document.getElementById('edit-user-pass').value = '';
+  document.getElementById('user-edit-overlay').classList.add('show');
+}
+
+function closeEditUserModal() {
+  document.getElementById('user-edit-overlay').classList.remove('show');
+}
+
+async function saveUserEdit() {
+  const id = document.getElementById('edit-user-id').value;
+  const username = document.getElementById('edit-user-name').value.trim();
+  const password = document.getElementById('edit-user-pass').value;
+  if (!username) { showToast('Benutzername darf nicht leer sein.'); return; }
+  if (password && password.length < 6) { showToast('Passwort muss mindestens 6 Zeichen haben.'); return; }
+  const payload = {username};
+  if (password) payload.password = password;
+  const r = await fetch('/api/users/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+  if (r.ok) {
+    showToast('Benutzer gespeichert.' + (password ? ' Passwort geändert.' : ''));
+    closeEditUserModal();
+    loadUsersTab();
+  } else {
+    const e = await r.json().catch(() => ({}));
+    showToast('Fehler: ' + (e.error || 'Unbekannt'));
+  }
+}
+
 async function addUser() {
   const username = document.getElementById('nu-name').value.trim();
   const password = document.getElementById('nu-pass').value;
@@ -2170,6 +2265,74 @@ async function deleteUser(id) {
   const r = await fetch('/api/users/' + id, {method: 'DELETE'});
   if (r.ok) { showToast('Benutzer entfernt.'); loadUsersTab(); }
   else { const e = await r.json().catch(() => ({})); showToast('Fehler: ' + (e.error || '')); }
+}
+
+// ══════════════════ PROTOKOLL (AUDIT-LOG) ══════════════════
+let auditEntries = [];
+const AUDIT_LABELS = {
+  'proposal.create': 'Vorschlag eingereicht', 'proposal.update': 'Vorschlag bearbeitet',
+  'proposal.approve': 'Vorschlag genehmigt', 'proposal.reject': 'Vorschlag abgelehnt',
+  'proposal.reopen': 'Vorschlag wieder geöffnet', 'proposal.delete': 'Vorschlag gelöscht',
+  'quote.create': 'Angebot erfasst', 'quote.update': 'Angebotspreis geändert', 'quote.delete': 'Angebot gelöscht',
+  'alternative.create': 'Alternative hinzugefügt', 'alternative.delete': 'Alternative gelöscht',
+  'supplier.create': 'Lieferant angelegt', 'supplier.update': 'Lieferant geändert', 'supplier.delete': 'Lieferant gelöscht',
+  'user.create': 'Benutzer angelegt', 'user.update': 'Benutzer geändert', 'user.delete': 'Benutzer gelöscht',
+  'settings.update': 'Einstellungen geändert', 'email.request': 'Angebotsanfrage gesendet',
+  'auth.login': 'Anmeldung', 'auth.login_failed': 'Anmeldung fehlgeschlagen', 'auth.logout': 'Abmeldung',
+};
+function auditLabel(a) { return AUDIT_LABELS[a] || a; }
+
+async function loadAuditTab() {
+  const r = await fetch('/api/audit?limit=500');
+  if (!r.ok) { showToast('Protokoll konnte nicht geladen werden.'); return; }
+  auditEntries = await r.json();
+  // Aktions-Filter befüllen
+  const sel = document.getElementById('audit-action-filter');
+  const prev = sel.value;
+  const actions = [...new Set(auditEntries.map(e => e.action))].sort();
+  sel.innerHTML = '<option value="">Alle Aktionen</option>'
+    + actions.map(a => '<option value="' + esc(a) + '">' + esc(auditLabel(a)) + '</option>').join('');
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  renderAudit();
+}
+
+function renderAudit() {
+  const txt = (document.getElementById('audit-filter').value || '').toLowerCase();
+  const act = document.getElementById('audit-action-filter').value;
+  const rows = auditEntries.filter(e =>
+    (!act || e.action === act) &&
+    (!txt || (e.username + ' ' + auditLabel(e.action) + ' ' + e.action + ' ' + e.entity + ' ' + e.details).toLowerCase().includes(txt)));
+  const tbody = document.getElementById('audit-tbody');
+  const empty = document.getElementById('audit-empty');
+  const table = tbody.closest('table');
+  tbody.innerHTML = rows.map(e =>
+    '<tr>'
+    + '<td data-label="Zeitpunkt" style="font-size:12px;color:var(--text2);white-space:nowrap;">' + esc(e.created_at) + '</td>'
+    + '<td data-label="Benutzer" style="font-size:12px;">' + esc(e.username) + '</td>'
+    + '<td data-label="Aktion"><span class="badge-pending">' + esc(auditLabel(e.action)) + '</span></td>'
+    + '<td data-label="Objekt" style="font-size:12px;">' + esc(e.entity || '—') + '</td>'
+    + '<td data-label="Details" style="font-size:12px;color:var(--text2);">' + esc(e.details || '—') + '</td>'
+    + '</tr>').join('');
+  table.style.display = rows.length ? '' : 'none';
+  empty.style.display = rows.length ? 'none' : 'block';
+  document.getElementById('audit-meta').textContent = rows.length + ' von ' + auditEntries.length + ' Einträgen';
+}
+
+function exportAuditCsv() {
+  const txt = (document.getElementById('audit-filter').value || '').toLowerCase();
+  const act = document.getElementById('audit-action-filter').value;
+  const rows = auditEntries.filter(e =>
+    (!act || e.action === act) &&
+    (!txt || (e.username + ' ' + auditLabel(e.action) + ' ' + e.action + ' ' + e.entity + ' ' + e.details).toLowerCase().includes(txt)));
+  const q = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+  const lines = [['Zeitpunkt', 'Benutzer', 'Aktion', 'Objekt', 'Details', 'IP'].map(q).join(';')];
+  rows.forEach(e => lines.push([e.created_at, e.username, auditLabel(e.action), e.entity, e.details, e.ip].map(q).join(';')));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'protokoll_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // ══════════════════ ANGEBOT / EMAIL ══════════════════

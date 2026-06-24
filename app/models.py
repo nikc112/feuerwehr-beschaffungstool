@@ -143,6 +143,30 @@ class Settings(db.Model):
             db.session.add(Settings(key=key, value=value))
 
 
+class AuditLog(db.Model):
+    """Änderungs-/Aktivitätsprotokoll (wer hat wann was geändert)."""
+    __tablename__ = 'audit_log'
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, nullable=True)
+    username = db.Column(db.String(80))      # Snapshot (bleibt auch nach User-Löschung)
+    action = db.Column(db.String(60))        # z. B. 'proposal.approve'
+    entity = db.Column(db.String(160))       # z. B. 'Vorschlag 01/2026'
+    details = db.Column(db.Text)             # menschenlesbar, inkl. Feld-Änderungen
+    ip = db.Column(db.String(64))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'created_at': self.created_at.strftime('%d.%m.%Y %H:%M:%S') if self.created_at else '',
+            'username': self.username or '—',
+            'action': self.action or '',
+            'entity': self.entity or '',
+            'details': self.details or '',
+            'ip': self.ip or '',
+        }
+
+
 class Supplier(db.Model):
     __tablename__ = 'suppliers'
     id = db.Column(db.Integer, primary_key=True)

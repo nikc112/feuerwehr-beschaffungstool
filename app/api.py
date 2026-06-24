@@ -16,6 +16,7 @@ from .email_service import send_email
 from .notifications import notify_new_proposal
 from .email_view import parse_email, render_email_page
 from .ratelimit import rate_limit
+from .audit import log as audit_log, diff as audit_diff
 
 api_bp = Blueprint('api', __name__)
 
@@ -220,6 +221,8 @@ def create_proposal():
             ))
 
     db.session.commit()
+    audit_log('proposal.create', f'Vorschlag {nr}',
+              f'„{proposal.bezeichnung}" eingereicht von {proposal.einreicher_name or "—"}')
     notify_new_proposal(current_app._get_current_object(), nr,
                         proposal.bezeichnung, proposal.einreicher_name)
     return jsonify({'nr': nr}), 201
@@ -253,6 +256,14 @@ def list_proposals():
 def update_proposal(nr):
     proposal = Proposal.query.filter_by(nr=nr).first_or_404()
     data = request.get_json() or {}
+    _before = {
+        'hersteller': proposal.hersteller, 'modell': proposal.modell,
+        'kosten': proposal.kosten, 'beschaffungsart': proposal.beschaffungsart,
+        'prioritaet': proposal.prioritaet, 'menge': proposal.menge,
+        'stueckpreis_geschaetzt': proposal.stueckpreis_geschaetzt,
+        'geplanter_zeitpunkt': proposal.geplanter_zeitpunkt,
+        'ablauf': proposal.ablauf, 'notizen': proposal.notizen,
+    }
     if 'kosten' in data:
         try:
             proposal.kosten = float(data['kosten'])
@@ -286,6 +297,22 @@ def update_proposal(nr):
     if 'geplanter_zeitpunkt' in data and current_user.role in ('beschaffer', 'admin'):
         proposal.geplanter_zeitpunkt = (data['geplanter_zeitpunkt'] or '').strip()
     db.session.commit()
+    _after = {
+        'hersteller': proposal.hersteller, 'modell': proposal.modell,
+        'kosten': proposal.kosten, 'beschaffungsart': proposal.beschaffungsart,
+        'prioritaet': proposal.prioritaet, 'menge': proposal.menge,
+        'stueckpreis_geschaetzt': proposal.stueckpreis_geschaetzt,
+        'geplanter_zeitpunkt': proposal.geplanter_zeitpunkt,
+        'ablauf': proposal.ablauf, 'notizen': proposal.notizen,
+    }
+    changes = audit_diff(_before, _after, {
+        'hersteller': 'Hersteller', 'modell': 'Modell', 'kosten': 'Kosten',
+        'beschaffungsart': 'Beschaffungsart', 'prioritaet': 'Priorität',
+        'menge': 'Menge', 'stueckpreis_geschaetzt': 'Stückpreis',
+        'geplanter_zeitpunkt': 'Geplanter Zeitpunkt', 'ablauf': 'Ablauf', 'notizen': 'Notizen',
+    })
+    if changes:
+        audit_log('proposal.update', f'Vorschlag {nr}', changes)
     return jsonify(proposal.to_dict())
 
 
@@ -298,8 +325,10 @@ def delete_proposal(nr):
         filepath = os.path.join(upload_folder, att.filepath or '')
         if att.filepath and os.path.exists(filepath):
             os.remove(filepath)
+    bez = proposal.bezeichnung
     db.session.delete(proposal)
     db.session.commit()
+    audit_log('proposal.delete', f'Vorschlag {nr}', f'„{bez}" gelöscht')
     return jsonify({'ok': True})
 
 
@@ -312,6 +341,7 @@ def approve_proposal(nr):
     proposal.approved_by_id = current_user.id
     proposal.approved_at = datetime.utcnow()
     db.session.commit()
+    audit_log('proposal.approve', f'Vorschlag {nr}', f'„{proposal.bezeichnung}" genehmigt')
     notified = _send_proposal_decision_mail(proposal, 'approve')
     result = proposal.to_dict()
     result['notified'] = notified
@@ -326,6 +356,8 @@ def reject_proposal(nr):
     proposal.status = 'rejected'
     proposal.rejection_reason = grund.strip()
     db.session.commit()
+    audit_log('proposal.reject', f'Vorschlag {nr}',
+              f'„{proposal.bezeichnung}" abgelehnt' + (f' – Grund: {grund.strip()}' if grund.strip() else ''))
     notified = _send_proposal_decision_mail(proposal, 'reject', grund)
     result = proposal.to_dict()
     result['notified'] = notified
@@ -340,6 +372,7 @@ def reopen_proposal(nr):
     proposal.status = 'pending'
     proposal.rejection_reason = ''
     db.session.commit()
+    audit_log('proposal.reopen', f'Vorschlag {nr}', f'„{proposal.bezeichnung}" wieder geöffnet')
     return jsonify(proposal.to_dict())
 
 
@@ -369,6 +402,7 @@ def create_alternative(nr):
     )
     db.session.add(alt)
     db.session.commit()
+    audit_log('alternative.create', f'Vorschlag {nr}', f'Alternative hinzugefügt: {hersteller} {modell}')
     return jsonify(alt.to_dict()), 201
 
 
@@ -376,8 +410,10 @@ def create_alternative(nr):
 @beschaffer_required
 def delete_alternative(nr, alt_id):
     alt = Alternative.query.filter_by(id=alt_id, proposal_nr=nr).first_or_404()
+    label = f'{alt.hersteller} {alt.modell}'
     db.session.delete(alt)
     db.session.commit()
+    audit_log('alternative.delete', f'Vorschlag {nr}', f'Alternative gelöscht: {label}')
     return jsonify({'ok': True})
 
 
@@ -453,6 +489,9 @@ def create_quote(nr):
 
     db.session.add(quote)
     db.session.commit()
+    _sup = db.session.get(Supplier, supplier_id_int) if supplier_id_int else None
+    audit_log('quote.create', f'Vorschlag {nr}',
+              f'Angebot erfasst: {_sup.name if _sup else "—"} – {preis_stueck:.2f} €/St.')
     return jsonify(quote.to_dict()), 201
 
 
@@ -461,6 +500,7 @@ def create_quote(nr):
 def update_quote(nr, quote_id):
     quote = Quote.query.filter_by(id=quote_id, proposal_nr=nr).first_or_404()
     data = request.get_json() or {}
+    _old_preis = quote.preis_stueck
     if 'preis_stueck' in data:
         try:
             quote.preis_stueck = float(data['preis_stueck'])
@@ -471,6 +511,9 @@ def update_quote(nr, quote_id):
     if 'notizen' in data:
         quote.notizen = data['notizen'] or ''
     db.session.commit()
+    if 'preis_stueck' in data and _old_preis != quote.preis_stueck:
+        audit_log('quote.update', f'Vorschlag {nr}',
+                  f'Angebotspreis: {_old_preis:.2f} → {quote.preis_stueck:.2f} €/St.')
     return jsonify(quote.to_dict())
 
 
@@ -483,8 +526,10 @@ def delete_quote(nr, quote_id):
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], quote.filepath)
         if os.path.exists(filepath):
             os.remove(filepath)
+    _sup = quote.supplier.name if quote.supplier else (quote.sender_email or '—')
     db.session.delete(quote)
     db.session.commit()
+    audit_log('quote.delete', f'Vorschlag {nr}', f'Angebot gelöscht: {_sup}')
     return jsonify({'ok': True})
 
 
@@ -571,6 +616,7 @@ def create_supplier():
     )
     db.session.add(supplier)
     db.session.commit()
+    audit_log('supplier.create', f'Lieferant {name}', f'E-Mail: {email}')
     return jsonify(supplier.to_dict()), 201
 
 
@@ -583,11 +629,19 @@ def update_supplier(sid):
     email = (data.get('email') or '').strip()
     if not name or not email:
         return jsonify({'error': 'Name und E-Mail erforderlich'}), 400
+    _sb = {'name': supplier.name, 'ansprechpartner': supplier.ansprechpartner,
+           'tel': supplier.tel, 'email': supplier.email}
     supplier.name = name
     supplier.ansprechpartner = (data.get('ansprechpartner') or '').strip()
     supplier.tel = (data.get('tel') or '').strip()
     supplier.email = email
     db.session.commit()
+    changes = audit_diff(_sb, {'name': name, 'ansprechpartner': supplier.ansprechpartner,
+                               'tel': supplier.tel, 'email': email},
+                         {'name': 'Name', 'ansprechpartner': 'Ansprechpartner',
+                          'tel': 'Telefon', 'email': 'E-Mail'})
+    if changes:
+        audit_log('supplier.update', f'Lieferant {name}', changes)
     return jsonify(supplier.to_dict())
 
 
@@ -595,8 +649,10 @@ def update_supplier(sid):
 @beschaffer_required
 def delete_supplier(sid):
     supplier = Supplier.query.get_or_404(sid)
+    sname = supplier.name
     db.session.delete(supplier)
     db.session.commit()
+    audit_log('supplier.delete', f'Lieferant {sname}', 'Lieferant gelöscht')
     return jsonify({'ok': True})
 
 
@@ -645,6 +701,7 @@ def create_user():
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
+    audit_log('user.create', f'Benutzer {username}', f'Rolle: {role}, E-Mail: {email}')
     return jsonify(user.to_dict()), 201
 
 
@@ -654,8 +711,10 @@ def delete_user(uid):
     if uid == current_user.id:
         return jsonify({'error': 'Eigenen Account kann man nicht löschen'}), 400
     user = User.query.get_or_404(uid)
+    uname = user.username
     db.session.delete(user)
     db.session.commit()
+    audit_log('user.delete', f'Benutzer {uname}', 'Benutzer gelöscht')
     return jsonify({'ok': True})
 
 
@@ -664,6 +723,23 @@ def delete_user(uid):
 def update_user(uid):
     user = User.query.get_or_404(uid)
     data = request.get_json() or {}
+    _ub = {'username': user.username, 'role': user.role, 'email': user.email,
+           'notify': bool(user.notify)}
+    _pw_changed = False
+    if 'username' in data:
+        new_username = (data.get('username') or '').strip()
+        if not new_username:
+            return jsonify({'error': 'Benutzername darf nicht leer sein'}), 400
+        clash = User.query.filter(db.func.lower(User.username) == new_username.lower(),
+                                  User.id != user.id).first()
+        if clash:
+            return jsonify({'error': 'Benutzername bereits vergeben'}), 400
+        user.username = new_username
+    if data.get('password'):
+        if len(data['password']) < 6:
+            return jsonify({'error': 'Passwort muss mindestens 6 Zeichen haben'}), 400
+        user.set_password(data['password'])
+        _pw_changed = True
     if 'role' in data:
         role = (data.get('role') or '').strip()
         if role not in ('betrachter', 'beschaffer', 'admin'):
@@ -679,7 +755,42 @@ def update_user(uid):
     if 'notify' in data:
         user.notify = bool(data.get('notify'))
     db.session.commit()
+    _ua = {'username': user.username, 'role': user.role, 'email': user.email,
+           'notify': bool(user.notify)}
+    changes = audit_diff(_ub, _ua, {'username': 'Benutzername', 'role': 'Rolle',
+                                    'email': 'E-Mail', 'notify': 'Benachrichtigung'})
+    if _pw_changed:
+        changes = (changes + '; ' if changes else '') + 'Passwort zurückgesetzt'
+    if changes:
+        audit_log('user.update', f'Benutzer {user.username}', changes)
     return jsonify(user.to_dict())
+
+
+# ── AUDIT-LOG ────────────────────────────────────────────────────────────────
+
+@api_bp.route('/audit', methods=['GET'])
+@admin_required
+def list_audit():
+    from .models import AuditLog
+    q = (request.args.get('q') or '').strip().lower()
+    action = (request.args.get('action') or '').strip()
+    try:
+        limit = min(max(int(request.args.get('limit') or 300), 1), 1000)
+    except (ValueError, TypeError):
+        limit = 300
+    query = AuditLog.query
+    if action:
+        query = query.filter(AuditLog.action == action)
+    if q:
+        like = f'%{q}%'
+        query = query.filter(db.or_(
+            db.func.lower(AuditLog.username).like(like),
+            db.func.lower(AuditLog.entity).like(like),
+            db.func.lower(AuditLog.details).like(like),
+            db.func.lower(AuditLog.action).like(like),
+        ))
+    rows = query.order_by(AuditLog.id.desc()).limit(limit).all()
+    return jsonify([r.to_dict() for r in rows])
 
 
 # ── SETTINGS ──────────────────────────────────────────────────────────────────
@@ -763,13 +874,20 @@ def update_settings():
 
     allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS
                   + _PROPOSAL_MAIL_KEYS + _M365_KEYS)
+    _changed = []
     for key, value in data.items():
         if key not in allowed:
             continue
         if key in ('smtp_password', 'imap_password', 'm365_client_secret') and (not value or value == _MASK):
             continue
         Settings.set(key, value or '')
+        _changed.append(key)
     db.session.commit()
+    if 'vergabe_tiers' in data:
+        _changed.append('vergabe_tiers')
+    if _changed:
+        # Nur Schlüsselnamen protokollieren – keine Werte (Geheimnisse!)
+        audit_log('settings.update', 'Einstellungen', 'Geändert: ' + ', '.join(sorted(_changed)))
     return jsonify({'ok': True})
 
 
@@ -885,6 +1003,7 @@ def send_emails():
     suppliers = Supplier.query.filter(Supplier.id.in_(recipient_ids)).all()
     errors = []
     sent = 0
+    _sent_names = []
 
     for supplier in suppliers:
         try:
@@ -913,8 +1032,13 @@ def send_emails():
                 body=body,
             )
             sent += 1
+            _sent_names.append(supplier.name)
         except Exception as e:
             errors.append(f'{supplier.name}: {e}')
+
+    if _sent_names:
+        audit_log('email.request', f'Vorgang {nr}',
+                  f'Angebotsanfrage „{bezeichnung}" gesendet an: ' + ', '.join(_sent_names))
 
     if errors and sent == 0:
         return jsonify({'error': 'E-Mail-Versand fehlgeschlagen', 'details': errors}), 500
