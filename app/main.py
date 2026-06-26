@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, jsonify
 
-from .models import get_vergabe_tiers, get_form_texts, get_branding
+from .models import get_vergabe_tiers, get_form_texts, get_branding, get_abteilungen
 
 main_bp = Blueprint('main', __name__)
 
@@ -10,7 +10,8 @@ def index():
     return render_template('index.html',
                            vergabe_tiers=get_vergabe_tiers(),
                            form_texts=get_form_texts(),
-                           branding=get_branding())
+                           branding=get_branding(),
+                           abteilungen=get_abteilungen())
 
 
 @main_bp.route('/manifest.webmanifest')

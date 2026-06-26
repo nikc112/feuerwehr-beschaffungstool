@@ -339,6 +339,18 @@ tr:last-child td{border-bottom:none;}
     </div>
   </div>
 
+  {% if abteilungen.options %}
+  <div class="form-section">
+    <span class="section-label">Abteilung{% if abteilungen.required %}<span class="required-star">*</span>{% endif %}</span>
+    <div class="checkbox-grid" id="abteilung-grid" data-required="{{ 'true' if abteilungen.required else 'false' }}">
+      {% for label in abteilungen.options %}
+      <label class="radio-item"><input type="radio" name="abteilung" value="{{ label }}" onchange="clearError('abteilung')"> {{ label }}</label>
+      {% endfor %}
+    </div>
+    <div class="field-error" id="err-abteilung">Bitte eine Abteilung auswählen</div>
+  </div>
+  {% endif %}
+
   <div class="form-section">
     <span class="section-label">Kategorie</span>
     <div class="checkbox-grid" id="cat-grid">
@@ -669,6 +681,32 @@ tr:last-child td{border-bottom:none;}
     </div>
   </div>
 
+  <!-- ABTEILUNGEN -->
+  <div class="form-section" style="margin-bottom:24px;">
+    <span class="section-label">Abteilungen</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;font-size:12px;border:1px solid var(--border);margin-bottom:14px;">
+        <i class="ti ti-info-circle" style="color:var(--ff-blue);"></i>
+        Bis zu 5 Abteilungen, die beim Einreichen unter den Kontaktdaten zur Auswahl stehen. <strong>Leere Felder werden nicht angezeigt</strong>; ohne Eintrag erscheint die Auswahl gar nicht. Änderungen wirken nach dem nächsten Laden der Einreichungsseite.
+      </div>
+      <div class="form-row cols2">
+        <div class="field" style="margin-bottom:10px;"><label>Abteilung 1</label><input type="text" id="st-abteilung-1" placeholder="z. B. Einsatzabteilung" /></div>
+        <div class="field" style="margin-bottom:10px;"><label>Abteilung 2</label><input type="text" id="st-abteilung-2" placeholder="z. B. Jugendfeuerwehr" /></div>
+        <div class="field" style="margin-bottom:10px;"><label>Abteilung 3</label><input type="text" id="st-abteilung-3" /></div>
+        <div class="field" style="margin-bottom:10px;"><label>Abteilung 4</label><input type="text" id="st-abteilung-4" /></div>
+        <div class="field" style="margin-bottom:10px;"><label>Abteilung 5</label><input type="text" id="st-abteilung-5" /></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+        <input type="checkbox" id="st-abteilung-required" style="width:15px;height:15px;accent-color:var(--ff-blue);">
+        <label for="st-abteilung-required" style="font-size:13px;cursor:pointer;color:var(--text);">Auswahl der Abteilung ist Pflichtfeld</label>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="resetAbteilungen()"><i class="ti ti-refresh"></i> Alle leeren</button>
+        <button class="btn-primary" onclick="saveAbteilungen()"><i class="ti ti-device-floppy"></i> Abteilungen speichern</button>
+      </div>
+    </div>
+  </div>
+
   <!-- E-MAIL AN EINREICHER: GENEHMIGUNG -->
   <div class="form-section" style="margin-bottom:24px;">
     <span class="section-label">E-Mail an Einreicher – bei Genehmigung</span>
@@ -971,6 +1009,7 @@ tr:last-child td{border-bottom:none;}
           <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Hersteller / Modell</div><div id="dm-hm">—</div></div>
           <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Kategorie</div><div id="dm-kategorie">—</div></div>
           <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Anlass</div><div id="dm-anlass">—</div></div>
+          <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Abteilung</div><div id="dm-abteilung">—</div></div>
           <div style="grid-column:1/-1;"><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Sachverhalt / Begründung</div><div id="dm-sachverhalt" style="white-space:pre-wrap;line-height:1.5;">—</div></div>
           <div style="grid-column:1/-1;"><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Risiken bei Nichtbeschaffung</div><div id="dm-risiken" style="white-space:pre-wrap;line-height:1.5;">—</div></div>
           <div><div style="color:var(--text2);font-size:11px;font-weight:600;margin-bottom:2px;">Geschätzte Kosten</div><div id="dm-kosten-anzeige">—</div></div>
@@ -1445,6 +1484,8 @@ async function submitForm() {
   formData.append('modell', document.getElementById('f-modell').value.trim());
   formData.append('kategorie', getChecked('cat-grid') || '—');
   formData.append('anlass', getChecked('anlass-grid') || '—');
+  const abSel = document.querySelector('input[name=abteilung]:checked');
+  formData.append('abteilung', abSel ? abSel.value : '');
   formData.append('sachverhalt', document.getElementById('f-sachverhalt').value);
   formData.append('risiken', document.getElementById('f-risiken').value);
   formData.append('kosten', document.getElementById('f-kosten').value || '0');
@@ -1521,6 +1562,7 @@ function renderPendingRows(pending) {
       + '<div class="ek-field"><label>Kategorie</label><span>' + esc(p.kategorie || '—') + '</span></div>'
       + '<div class="ek-field"><label>Menge</label><span>' + esc(String(p.menge || 1)) + ' Stück</span></div>'
       + '<div class="ek-field"><label>Anlass</label><span>' + esc(p.anlass || '—') + '</span></div>'
+      + '<div class="ek-field"><label>Abteilung</label><span>' + esc(p.abteilung || '—') + '</span></div>'
       + '<div class="ek-field"><label>Priorität</label><span>' + esc(p.prioritaet || '—') + '</span></div>'
       + '<div class="ek-field"><label>Kontakt</label><span>' + esc(contact) + '</span></div>'
       + '<div class="ek-field ek-sachverhalt"><label>Sachverhalt</label><span>' + esc(sachverhalt) + '</span></div>'
@@ -1750,6 +1792,9 @@ async function loadSettingsTab() {
   document.getElementById('st-approve-body').value = d.approve_body || d._default_approve_body || '';
   document.getElementById('st-reject-subject').value = d.reject_subject || d._default_reject_subject || '';
   document.getElementById('st-reject-body').value = d.reject_body || d._default_reject_body || '';
+  // Abteilungen
+  for (let i = 1; i <= 5; i++) document.getElementById('st-abteilung-' + i).value = d['abteilung_' + i] || '';
+  document.getElementById('st-abteilung-required').checked = (d.abteilung_required === 'true');
   // Branding / Erscheinungsbild
   document.getElementById('st-brand-name').value = d.brand_name || d._default_brand_name || '';
   document.getElementById('st-brand-subtitle').value = d.brand_subtitle || d._default_brand_subtitle || '';
@@ -2029,6 +2074,26 @@ async function resetFormTexts() {
     applyFormTexts(d._default_form_heading || '', d._default_form_intro || '');
   }
   showToast('Standard-Texte wiederhergestellt.');
+}
+
+// ── Abteilungen ──
+async function saveAbteilungen() {
+  const payload = {abteilung_required: document.getElementById('st-abteilung-required').checked ? 'true' : 'false'};
+  for (let i = 1; i <= 5; i++) payload['abteilung_' + i] = document.getElementById('st-abteilung-' + i).value.trim();
+  const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+  showToast(r.ok ? 'Abteilungen gespeichert.' : 'Fehler beim Speichern.');
+}
+
+async function resetAbteilungen() {
+  if (!await showConfirm('Alle Abteilungen leeren? Die Auswahl verschwindet dann von der Einreichungsseite.', {label: 'Leeren', title: 'Abteilungen leeren'})) return;
+  const payload = {abteilung_required: 'false'};
+  for (let i = 1; i <= 5; i++) payload['abteilung_' + i] = '';
+  const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+  if (r.ok) {
+    for (let i = 1; i <= 5; i++) document.getElementById('st-abteilung-' + i).value = '';
+    document.getElementById('st-abteilung-required').checked = false;
+    showToast('Abteilungen geleert.');
+  } else showToast('Fehler beim Zurücksetzen.');
 }
 
 // E-Mail-Vorlagen an Einreicher (kind = 'approve' | 'reject')
@@ -2533,6 +2598,7 @@ function openDetailModal(proposal) {
   document.getElementById('dm-hm').textContent = [proposal.hersteller, proposal.modell].filter(Boolean).join(' / ') || '—';
   document.getElementById('dm-kategorie').textContent = proposal.kategorie || '—';
   document.getElementById('dm-anlass').textContent = proposal.anlass || '—';
+  document.getElementById('dm-abteilung').textContent = proposal.abteilung || '—';
   document.getElementById('dm-sachverhalt').textContent = proposal.sachverhalt || '—';
   document.getElementById('dm-risiken').textContent = proposal.risiken || '—';
   document.getElementById('dm-kosten-anzeige').textContent = (proposal.kosten || 0).toLocaleString('de-DE') + ' € netto (Schätzung)';
@@ -2969,6 +3035,11 @@ function validateForm() {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value.trim())) {
     em.classList.add('error'); document.getElementById('err-einreicher-email').classList.add('show'); ok = false;
   }
+  // Abteilung: nur Pflicht, wenn der Block existiert und als Pflichtfeld konfiguriert ist
+  const abGrid = document.getElementById('abteilung-grid');
+  if (abGrid && abGrid.dataset.required === 'true' && !document.querySelector('input[name=abteilung]:checked')) {
+    document.getElementById('err-abteilung').classList.add('show'); ok = false;
+  }
   return ok;
 }
 
@@ -2979,7 +3050,8 @@ function resetForm() {
   ['hersteller','modell'].forEach(f => { document.getElementById('f-'+f).value = ''; });
   document.getElementById('f-einreicher-tel').value = '';
   ['sachverhalt','risiken','kosten'].forEach(f => document.getElementById('f-'+f).value = '');
-  document.querySelectorAll('#cat-grid input,#anlass-grid input').forEach(i => i.checked = false);
+  document.querySelectorAll('#cat-grid input,#anlass-grid input,#abteilung-grid input').forEach(i => i.checked = false);
+  const abErr = document.getElementById('err-abteilung'); if (abErr) abErr.classList.remove('show');
   ['kreis','land','verein','sonst'].forEach(k => document.getElementById('f-foerd-'+k).checked = false);
   document.querySelectorAll('input[name=prioritaet]').forEach(r => r.checked = false);
   attachedFiles = []; renderFileList();

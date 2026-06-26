@@ -116,6 +116,7 @@ def _migrate():
         'ALTER TABLE proposals ADD COLUMN stueckpreis_geschaetzt FLOAT',
         'ALTER TABLE proposals ADD COLUMN geplanter_zeitpunkt VARCHAR(20)',
         'ALTER TABLE proposals ADD COLUMN rejection_reason TEXT',
+        'ALTER TABLE proposals ADD COLUMN abteilung VARCHAR(200)',
         '''CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             created_at DATETIME,

@@ -71,6 +71,7 @@ class Proposal(db.Model):
     stueckpreis_geschaetzt = db.Column(db.Float, nullable=True)
     geplanter_zeitpunkt = db.Column(db.String(20))  # geplantes Beschaffungsjahr, z. B. "2028"
     rejection_reason = db.Column(db.Text)  # Ablehnungsgrund (nur bei status='rejected')
+    abteilung = db.Column(db.String(200))  # gewählte Abteilung (konfigurierbar)
 
     attachments = db.relationship('Attachment', backref='proposal', lazy=True,
                                   cascade='all, delete-orphan')
@@ -109,6 +110,7 @@ class Proposal(db.Model):
             'stueckpreis_geschaetzt': self.stueckpreis_geschaetzt,
             'geplanter_zeitpunkt': self.geplanter_zeitpunkt or '',
             'rejection_reason': self.rejection_reason or '',
+            'abteilung': self.abteilung or '',
         }
 
 
@@ -293,6 +295,15 @@ def get_form_texts():
     return {
         'heading': Settings.get('form_heading') or DEFAULT_FORM_HEADING,
         'intro': Settings.get('form_intro') or DEFAULT_FORM_INTRO,
+    }
+
+
+def get_abteilungen():
+    """Konfigurierte Abteilungen (bis zu 5; nur befüllte) + Pflicht-Flag."""
+    opts = [(Settings.get(f'abteilung_{i}') or '').strip() for i in range(1, 6)]
+    return {
+        'options': [o for o in opts if o],
+        'required': Settings.get('abteilung_required') == 'true',
     }
 
 

@@ -184,6 +184,11 @@ def create_proposal():
     einreicher_email = (form.get('einreicher_email') or '').strip()
     if '@' not in einreicher_email or '.' not in einreicher_email.split('@')[-1]:
         return jsonify({'error': 'Gültige E-Mail-Adresse des Einreichers erforderlich'}), 400
+    from .models import get_abteilungen
+    abteilung = (form.get('abteilung') or '').strip()
+    _ab = get_abteilungen()
+    if _ab['required'] and _ab['options'] and not abteilung:
+        return jsonify({'error': 'Bitte eine Abteilung auswählen'}), 400
 
     nr = _next_nr()
     proposal = Proposal(
@@ -203,6 +208,7 @@ def create_proposal():
         einreicher_name=(form.get('einreicher_name') or '').strip(),
         einreicher_email=einreicher_email,
         einreicher_tel=(form.get('einreicher_tel') or '').strip(),
+        abteilung=abteilung,
     )
     db.session.add(proposal)
     db.session.flush()
@@ -803,6 +809,8 @@ _TEMPLATE_KEYS = ('email_subject', 'email_body')
 _IMAP_KEYS = ('imap_host', 'imap_port', 'imap_user', 'imap_password', 'imap_folder', 'imap_ssl', 'imap_enabled', 'imap_interval')
 _M365_KEYS = ('mail_provider', 'm365_tenant', 'm365_client_id', 'm365_client_secret', 'm365_mailbox')
 _FORM_KEYS = ('form_heading', 'form_intro')
+_ABTEILUNG_KEYS = ('abteilung_1', 'abteilung_2', 'abteilung_3', 'abteilung_4', 'abteilung_5',
+                   'abteilung_required')
 _BRAND_KEYS = ('brand_name', 'brand_subtitle', 'brand_address', 'brand_color_primary',
                'brand_color_accent', 'brand_color_bg')
 _PROPOSAL_MAIL_KEYS = ('approve_subject', 'approve_body', 'reject_subject', 'reject_body')
@@ -813,7 +821,7 @@ _PROPOSAL_MAIL_KEYS = ('approve_subject', 'approve_body', 'reject_subject', 'rej
 def get_settings():
     result = {}
     for key in (_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS
-                + _PROPOSAL_MAIL_KEYS + _M365_KEYS):
+                + _PROPOSAL_MAIL_KEYS + _M365_KEYS + _ABTEILUNG_KEYS):
         val = Settings.get(key)
         if key in ('smtp_password', 'imap_password', 'm365_client_secret'):
             result[key] = _MASK if val else ''
@@ -876,7 +884,7 @@ def update_settings():
             Settings.set('vergabe_tiers', json.dumps(cleaned, ensure_ascii=False))
 
     allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS
-                  + _PROPOSAL_MAIL_KEYS + _M365_KEYS)
+                  + _PROPOSAL_MAIL_KEYS + _M365_KEYS + _ABTEILUNG_KEYS)
     _changed = []
     for key, value in data.items():
         if key not in allowed:
