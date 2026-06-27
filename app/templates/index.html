@@ -344,10 +344,10 @@ tr:last-child td{border-bottom:none;}
     <span class="section-label">Abteilung{% if abteilungen.required %}<span class="required-star">*</span>{% endif %}</span>
     <div class="checkbox-grid" id="abteilung-grid" data-required="{{ 'true' if abteilungen.required else 'false' }}">
       {% for label in abteilungen.options %}
-      <label class="radio-item"><input type="radio" name="abteilung" value="{{ label }}" onchange="clearError('abteilung')"> {{ label }}</label>
+      <label class="checkbox-item"><input type="checkbox" name="abteilung" value="{{ label }}" onchange="clearError('abteilung')"> {{ label }}</label>
       {% endfor %}
     </div>
-    <div class="field-error" id="err-abteilung">Bitte eine Abteilung auswählen</div>
+    <div class="field-error" id="err-abteilung">Bitte mindestens eine Abteilung auswählen</div>
   </div>
   {% endif %}
 
@@ -1484,8 +1484,7 @@ async function submitForm() {
   formData.append('modell', document.getElementById('f-modell').value.trim());
   formData.append('kategorie', getChecked('cat-grid') || '—');
   formData.append('anlass', getChecked('anlass-grid') || '—');
-  const abSel = document.querySelector('input[name=abteilung]:checked');
-  formData.append('abteilung', abSel ? abSel.value : '');
+  formData.append('abteilung', getChecked('abteilung-grid'));
   formData.append('sachverhalt', document.getElementById('f-sachverhalt').value);
   formData.append('risiken', document.getElementById('f-risiken').value);
   formData.append('kosten', document.getElementById('f-kosten').value || '0');

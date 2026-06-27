@@ -37,6 +37,14 @@ def test_create_proposal_stores_abteilung(app, client, auth_client, monkeypatch)
     assert p['abteilung'] == 'Jugend'
 
 
+def test_create_proposal_stores_multiple_abteilungen(app, client, auth_client, monkeypatch):
+    _set(app, abteilung_1='Einsatz', abteilung_2='Jugend', abteilung_3='Foerderverein')
+    # Frontend sendet die Auswahl als ein zusammengefuegtes Feld
+    nr = _post(client, monkeypatch, abteilung='Einsatz, Foerderverein').get_json()['nr']
+    p = [x for x in auth_client.get('/api/proposals?status=pending').get_json() if x['nr'] == nr][0]
+    assert p['abteilung'] == 'Einsatz, Foerderverein'
+
+
 def test_abteilung_required_enforced(app, client, monkeypatch):
     _set(app, abteilung_1='Einsatz', abteilung_2='Jugend', abteilung_required='true')
     assert _post(client, monkeypatch).status_code == 400               # ohne Abteilung

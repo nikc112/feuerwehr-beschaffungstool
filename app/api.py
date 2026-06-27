@@ -185,10 +185,13 @@ def create_proposal():
     if '@' not in einreicher_email or '.' not in einreicher_email.split('@')[-1]:
         return jsonify({'error': 'Gültige E-Mail-Adresse des Einreichers erforderlich'}), 400
     from .models import get_abteilungen
-    abteilung = (form.get('abteilung') or '').strip()
+    _ab_vals = [v.strip() for v in form.getlist('abteilung') if v.strip()]
+    if len(_ab_vals) == 1 and ',' in _ab_vals[0]:        # einzelnes, bereits zusammengefügtes Feld
+        _ab_vals = [v.strip() for v in _ab_vals[0].split(',') if v.strip()]
+    abteilung = ', '.join(_ab_vals)
     _ab = get_abteilungen()
     if _ab['required'] and _ab['options'] and not abteilung:
-        return jsonify({'error': 'Bitte eine Abteilung auswählen'}), 400
+        return jsonify({'error': 'Bitte mindestens eine Abteilung auswählen'}), 400
 
     nr = _next_nr()
     proposal = Proposal(
