@@ -79,6 +79,27 @@ def create_app():
     def unauthorized():
         return jsonify({'error': 'Nicht angemeldet'}), 401
 
+    # Automatische Abmeldung nach 15 Minuten Inaktivität. Jeder Request eines
+    # angemeldeten Nutzers verlängert die Sitzung – außer /api/auth/me, damit
+    # das Status-Polling des Frontends die Sitzung nicht künstlich am Leben hält.
+    SESSION_TIMEOUT_SECONDS = 15 * 60
+
+    @app.before_request
+    def _session_timeout():
+        import time
+        from flask import session, request
+        from flask_login import current_user, logout_user
+        if not current_user.is_authenticated:
+            return
+        last = session.get('last_seen')
+        now = time.time()
+        if last is not None and now - last > SESSION_TIMEOUT_SECONDS:
+            logout_user()   # löscht auch ein evtl. vorhandenes Remember-Cookie
+            session.pop('last_seen', None)
+            return          # Request läuft anonym weiter -> 401 bei geschützten Routen
+        if last is None or request.path != '/api/auth/me':
+            session['last_seen'] = now
+
     # Security-Header für alle Antworten. setdefault, damit Routen mit eigener,
     # strengerer Policy (E-Mail-Ansicht, Logo) nicht überschrieben werden.
     # SAMEORIGIN statt DENY: die Original-Mail-Ansicht läuft in einem eigenen iframe.

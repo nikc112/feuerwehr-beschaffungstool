@@ -6,6 +6,8 @@ Kurzüberblick über die Schutzmaßnahmen des Tools und die Punkte, die beim
 ## Im Code umgesetzt
 
 - **Authentisierung/Rollen:** `betrachter` < `beschaffer` < `admin`; jede API prüft die Rolle serverseitig.
+- **Sitzungs-Timeout:** automatische Abmeldung nach **15 Minuten Inaktivität**
+  (serverseitig erzwungen; kein dauerhaftes Remember-Cookie).
 - **Betrachter-Zugriff (IDOR-Schutz):** Betrachter sehen Dateien, Angebote, Alternativen und
   Original-E-Mails **nur zu genehmigten** Vorschlägen.
 - **Passwörter:** bcrypt/pbkdf2 (Werkzeug), Mindestlänge **8 Zeichen**.

@@ -18,7 +18,9 @@ def login():
     if not user and ident:
         user = User.query.filter(db.func.lower(User.email) == ident.lower()).first()
     if user and user.check_password(password):
-        login_user(user, remember=True)
+        # Kein Remember-Cookie: Sitzung endet nach 15 min Inaktivität
+        # (Timeout-Hook in create_app).
+        login_user(user)
         audit_log('auth.login', f'Benutzer {user.username}', 'Anmeldung erfolgreich')
         return jsonify({'user': user.to_dict()})
     audit_log('auth.login_failed', '', f'Fehlgeschlagene Anmeldung für „{ident}"')

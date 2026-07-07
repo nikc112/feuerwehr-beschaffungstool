@@ -1414,6 +1414,22 @@ async function refreshAuth() {
   }
 }
 
+// Automatische Abmeldung: Der Server beendet Sitzungen nach 15 min Inaktivität.
+// Das Polling (verlängert die Sitzung NICHT) erkennt das und räumt die Oberfläche auf.
+setInterval(async () => {
+  if (!currentUser) return;
+  try {
+    const r = await fetch('/api/auth/me');
+    if (r.status === 401) {
+      currentUser = null;
+      proposals = [];
+      updateTabVisibility();
+      showTab('form');
+      showToast('Automatisch abgemeldet (15 Minuten inaktiv).');
+    }
+  } catch {}
+}, 60 * 1000);
+
 function updateTabVisibility() {
   const ek = document.getElementById('tab-eingangskorb');
   const hi = document.getElementById('tab-historie');
