@@ -285,6 +285,7 @@ tr:last-child td{border-bottom:none;}
   <button class="tab active" onclick="showTab('form')" id="tab-form"><i class="ti ti-forms"></i> Neuer Vorschlag</button>
   <button class="tab" onclick="showTab('eingangskorb')" id="tab-eingangskorb" style="display:none;"><i class="ti ti-inbox"></i> Eingangskorb</button>
   <button class="tab" onclick="showTab('list')" id="tab-list"><i class="ti ti-list"></i> Investitionsliste</button>
+  <button class="tab" onclick="showTab('historie')" id="tab-historie" style="display:none;"><i class="ti ti-archive"></i> Historie</button>
   <button class="tab" onclick="showTab('lieferanten')" id="tab-lieferanten" style="display:none;"><i class="ti ti-building-store"></i> Lieferanten</button>
   <button class="tab" onclick="showTab('benutzer')" id="tab-benutzer" style="display:none;"><i class="ti ti-users"></i> Benutzer</button>
   <button class="tab" onclick="showTab('einstellungen')" id="tab-einstellungen" style="display:none;"><i class="ti ti-settings"></i> Einstellungen</button>
@@ -517,6 +518,32 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<!-- ══════════════════ VIEW: HISTORIE ══════════════════ -->
+<div class="content" id="view-historie" style="display:none;">
+  <span style="font-size:18px;font-weight:600;color:var(--ff-blue);display:block;margin-bottom:6px;">Beschaffungshistorie</span>
+  <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Abgeschlossene Beschaffungen (im Ablauf als „Beschafft" gekennzeichnet).</div>
+  <div class="summary-bar" id="historie-summary"></div>
+  <div class="table-wrap">
+    <table id="historie-table">
+      <thead><tr>
+        <th>Nr.</th>
+        <th>Bezeichnung</th>
+        <th>Lieferant</th>
+        <th style="text-align:right;">Rechnungsbetrag</th>
+        <th>Beschafft am</th>
+        <th>Rechnung</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="historie-body"></tbody>
+    </table>
+  </div>
+  <div id="historie-empty" class="empty-state" style="display:none;">
+    <i class="ti ti-archive" style="font-size:42px;display:block;margin-bottom:10px;opacity:.25;"></i>
+    Noch keine abgeschlossenen Beschaffungen.<br>
+    <span style="font-size:13px;">Vorgänge erscheinen hier, sobald sie in der Investitionsliste als „Beschafft" gekennzeichnet werden.</span>
+  </div>
+</div>
+
 <!-- ══════════════════ VIEW: LOGIN-PLATZHALTER ══════════════════ -->
 <div class="content" id="view-login" style="display:none;">
   <div class="empty-state">
@@ -710,6 +737,25 @@ tr:last-child td{border-bottom:none;}
       <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
         <button class="btn-secondary" onclick="resetAbteilungen()"><i class="ti ti-refresh"></i> Alle leeren</button>
         <button class="btn-primary" onclick="saveAbteilungen()"><i class="ti ti-device-floppy"></i> Abteilungen speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIE / BESCHAFFUNGSABSCHLUSS -->
+  <div class="form-section" style="margin-bottom:24px;">
+    <span class="section-label">Historie / Beschaffungsabschluss</span>
+    <div class="mgmt-add" style="margin-top:10px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        Beim Kennzeichnen eines Vorgangs als „Beschafft" öffnet sich ein Dialog für
+        Lieferant, Rechnungsbetrag und Rechnungs-PDF. Hier lässt sich festlegen, ob
+        diese Angaben Pflicht sind (das PDF bleibt immer optional).
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="st-beschaffung-required" style="width:15px;height:15px;accent-color:var(--ff-blue);">
+        <label for="st-beschaffung-required" style="font-size:13px;cursor:pointer;color:var(--text);">Lieferant und Rechnungsbetrag sind beim Abschluss Pflicht</label>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="saveBeschaffungSettings()"><i class="ti ti-device-floppy"></i> Speichern</button>
       </div>
     </div>
   </div>
@@ -1208,6 +1254,40 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<!-- ══════════════════ BESCHAFFUNG-ABSCHLUSS MODAL ══════════════════ -->
+<div class="modal-overlay" id="beschaffung-modal-overlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3><i class="ti ti-checklist"></i> Beschaffung abschließen</h3>
+      <button class="modal-close" onclick="closeBeschaffungModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;" id="bm-intro">
+        Der Vorgang wird als <strong>beschafft</strong> gekennzeichnet und wandert in die Historie.
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Lieferant<span class="required-star" id="bm-req-1" style="display:none;">*</span></label>
+        <select id="bm-supplier"><option value="">— Bitte wählen —</option></select>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Rechnungsbetrag (€)<span class="required-star" id="bm-req-2" style="display:none;">*</span></label>
+        <input type="number" id="bm-betrag" min="0" step="0.01" placeholder="z. B. 7490.00" />
+      </div>
+      <div class="field">
+        <label>Rechnungs-PDF (optional)</label>
+        <input type="file" id="bm-pdf" accept=".pdf" style="font-size:13px;" />
+        <div id="bm-pdf-current" style="display:none;font-size:12px;color:var(--text2);margin-top:5px;"></div>
+      </div>
+      <div class="login-error" id="bm-error" style="display:none;margin-top:12px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeBeschaffungModal()">Abbrechen</button>
+      <button class="btn-secondary" id="bm-skip" onclick="saveBeschaffung(true)" style="display:none;">Überspringen</button>
+      <button class="btn-primary" id="bm-save" onclick="saveBeschaffung(false)"><i class="ti ti-device-floppy"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════ ABLEHNEN MODAL ══════════════════ -->
 <div class="modal-overlay" id="reject-modal-overlay">
   <div class="modal" style="max-width:480px;">
@@ -1286,11 +1366,12 @@ tr:last-child td{border-bottom:none;}
 <div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-msg"></span></div>
 
 <script>window.VERGABE_TIERS = {{ vergabe_tiers|tojson }};</script>
+<script>window.BESCHAFFUNG_REQUIRED = {{ beschaffung_required|tojson }};</script>
 <script>
 // ══════════════════ CONSTANTS ══════════════════
 const ABLAUF_ORDER = ["Markterkundung","Angebote eingeholt","Vorstandsbeschluss","Beschafft"];
-const PROTECTED_VIEWS = ['eingangskorb','list','lieferanten','benutzer','einstellungen','protokoll'];
-const ALL_VIEWS = ['form','eingangskorb','list','login','lieferanten','benutzer','einstellungen','protokoll'];
+const PROTECTED_VIEWS = ['eingangskorb','list','historie','lieferanten','benutzer','einstellungen','protokoll'];
+const ALL_VIEWS = ['form','eingangskorb','list','historie','login','lieferanten','benutzer','einstellungen','protokoll'];
 
 // ══════════════════ STATE ══════════════════
 let currentUser = null;
@@ -1335,6 +1416,7 @@ async function refreshAuth() {
 
 function updateTabVisibility() {
   const ek = document.getElementById('tab-eingangskorb');
+  const hi = document.getElementById('tab-historie');
   const li = document.getElementById('tab-lieferanten');
   const be = document.getElementById('tab-benutzer');
   const ei = document.getElementById('tab-einstellungen');
@@ -1343,6 +1425,7 @@ function updateTabVisibility() {
   const hdrUser = document.getElementById('hdr-user');
   if (currentUser) {
     ek.style.display = isBeschaffer() ? '' : 'none';
+    hi.style.display = '';
     li.style.display = '';
     be.style.display = isAdmin() ? '' : 'none';
     ei.style.display = isAdmin() ? '' : 'none';
@@ -1352,6 +1435,7 @@ function updateTabVisibility() {
     document.getElementById('hdr-username').textContent = currentUser.username;
   } else {
     ek.style.display = 'none';
+    hi.style.display = 'none';
     li.style.display = 'none';
     be.style.display = 'none';
     ei.style.display = 'none';
@@ -1447,7 +1531,7 @@ async function doSetup() {
 
 // ══════════════════ TABS ══════════════════
 function _activateTab(t) {
-  ['form','eingangskorb','list','lieferanten','benutzer','einstellungen','protokoll'].forEach(id => {
+  ['form','eingangskorb','list','historie','lieferanten','benutzer','einstellungen','protokoll'].forEach(id => {
     const el = document.getElementById('tab-' + id);
     if (el) el.className = 'tab' + (id === t ? ' active' : '');
   });
@@ -1473,6 +1557,7 @@ function showTab(t) {
   _activateTab(t);
   _switchView(t);
   if (t === 'list') loadProposals();
+  if (t === 'historie') loadProposals();
   if (t === 'eingangskorb') { showEkPane('pending'); loadEingangskorb(); }
   if (t === 'lieferanten') loadSuppliersTab();
   if (t === 'benutzer') loadUsersTab();
@@ -1514,7 +1599,7 @@ async function submitForm() {
 
 async function loadProposals() {
   const r = await fetch('/api/proposals');
-  if (r.ok) { proposals = await r.json(); renderList(); }
+  if (r.ok) { proposals = await r.json(); renderList(); renderHistorie(); }
 }
 
 // ══════════════════ EINGANGSKORB ══════════════════
@@ -1802,6 +1887,7 @@ async function loadSettingsTab() {
   // Abteilungen
   for (let i = 1; i <= 5; i++) document.getElementById('st-abteilung-' + i).value = d['abteilung_' + i] || '';
   document.getElementById('st-abteilung-required').checked = (d.abteilung_required === 'true');
+  document.getElementById('st-beschaffung-required').checked = (d.beschaffung_required === 'true');
   // Branding / Erscheinungsbild
   document.getElementById('st-brand-name').value = d.brand_name || d._default_brand_name || '';
   document.getElementById('st-brand-subtitle').value = d.brand_subtitle || d._default_brand_subtitle || '';
@@ -2096,6 +2182,14 @@ async function saveAbteilungen() {
   for (let i = 1; i <= 5; i++) payload['abteilung_' + i] = document.getElementById('st-abteilung-' + i).value.trim();
   const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
   showToast(r.ok ? 'Abteilungen gespeichert.' : 'Fehler beim Speichern.');
+}
+
+async function saveBeschaffungSettings() {
+  const checked = document.getElementById('st-beschaffung-required').checked;
+  const r = await fetch('/api/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({beschaffung_required: checked ? 'true' : 'false'})});
+  if (r.ok) window.BESCHAFFUNG_REQUIRED = checked;   // sofort in dieser Sitzung wirksam
+  showToast(r.ok ? 'Einstellung gespeichert.' : 'Fehler beim Speichern.');
 }
 
 async function resetAbteilungen() {
@@ -3074,7 +3168,16 @@ function resetForm() {
 function getProposalByNr(nr) { return proposals.find(p => p.nr === nr) || null; }
 function getChecked(id) { return [...document.querySelectorAll('#'+id+' input:checked')].map(i => i.value).join(', '); }
 function getFordering() { const v = ['kreis','land','verein','sonst'].filter(k => document.getElementById('f-foerd-'+k).checked).map(k => document.getElementById('f-foerd-'+k).value); return v.length ? v.join(', ') : 'keine'; }
-function toggleChip(el) { el.classList.toggle('active'); }
+function toggleChip(el) {
+  // "Beschafft" neu setzen -> zuerst Beschaffungsdaten im Popup erfassen
+  if (el.dataset.val === 'Beschafft' && !el.classList.contains('active')
+      && isBeschaffer() && currentDetailProposal
+      && !(currentDetailProposal.ablauf || []).includes('Beschafft')) {
+    openBeschaffungModal(currentDetailProposal.nr, true);
+    return;   // Chip wird erst nach erfolgreichem Speichern aktiv
+  }
+  el.classList.toggle('active');
+}
 
 // ══════════════════ FILE UPLOAD ══════════════════
 function handleFiles(files) {
@@ -3128,7 +3231,9 @@ function renderList() {
   const kat = document.getElementById('filter-kat').value;
   const verg = document.getElementById('filter-vergabe').value;
   const zeit = document.getElementById('filter-zeitpunkt').value;
-  const filtered = proposals.filter(d => {
+  // Beschaffte Vorgänge liegen in der Historie – hier nur die aktiven anzeigen
+  const active = proposals.filter(d => !(Array.isArray(d.ablauf) && d.ablauf.includes('Beschafft')));
+  const filtered = active.filter(d => {
     const v = getVergabe(d.kosten);
     const gz = (d.geplanter_zeitpunkt||'').trim();
     return (!txt || (d.bezeichnung+' '+d.hersteller+' '+d.modell+' '+d.nr).toLowerCase().includes(txt))
@@ -3138,10 +3243,11 @@ function renderList() {
       && (!zeit || (zeit === '__none__' ? !gz : gz === zeit));
   });
   const total = filtered.reduce((s,d) => s + (d.kosten||0), 0);
+  const beschafftGesamt = proposals.length - active.length;
   document.getElementById('summary-bar').innerHTML =
     '<div class="stat-card"><div class="stat-num">'+filtered.length+'</div><div class="stat-lbl">Einträge</div></div>'
     +'<div class="stat-card"><div class="stat-num" style="color:#a32d2d">'+filtered.filter(d=>d.prioritaet==='Hoch').length+'</div><div class="stat-lbl">Hohe Priorität</div></div>'
-    +'<div class="stat-card"><div class="stat-num" style="color:#3b6d11">'+filtered.filter(d=>Array.isArray(d.ablauf)&&d.ablauf.includes('Beschafft')).length+'</div><div class="stat-lbl">Beschafft</div></div>'
+    +'<div class="stat-card"><div class="stat-num" style="color:#3b6d11">'+beschafftGesamt+'</div><div class="stat-lbl">Beschafft (Historie)</div></div>'
     +'<div class="stat-card"><div class="stat-num">'+total.toLocaleString('de-DE')+' €</div><div class="stat-lbl">Gesamtkosten</div></div>';
   const body = document.getElementById('list-body'); body.innerHTML = '';
   if (!filtered.length) {
@@ -3168,7 +3274,131 @@ function renderList() {
     });
     document.getElementById('gesamtkosten').textContent = 'Gesamtkosten (Auswahl): ' + total.toLocaleString('de-DE') + ' €';
   }
-  document.getElementById('list-meta').textContent = filtered.length + ' von ' + proposals.length + ' Einträgen';
+  document.getElementById('list-meta').textContent = filtered.length + ' von ' + active.length + ' Einträgen';
+}
+
+// ══════════════════ HISTORIE ══════════════════
+function renderHistorie() {
+  const tbody = document.getElementById('historie-body');
+  if (!tbody) return;
+  const done = proposals.filter(d => Array.isArray(d.ablauf) && d.ablauf.includes('Beschafft'));
+  // Neueste zuerst (beschafft_am ist dd.mm.yyyy; Fallback: Nr.)
+  const key = d => (d.beschafft_am || '').split('.').reverse().join('') + d.nr;
+  done.sort((a, b) => key(b).localeCompare(key(a)));
+  const sum = done.reduce((s, d) => s + (d.rechnungsbetrag || 0), 0);
+  document.getElementById('historie-summary').innerHTML =
+    '<div class="stat-card"><div class="stat-num">'+done.length+'</div><div class="stat-lbl">Beschaffungen</div></div>'
+    +'<div class="stat-card"><div class="stat-num">'+sum.toLocaleString('de-DE', {minimumFractionDigits:2})+' €</div><div class="stat-lbl">Summe Rechnungsbeträge</div></div>';
+  document.getElementById('historie-table').style.display = done.length ? '' : 'none';
+  document.getElementById('historie-empty').style.display = done.length ? 'none' : 'block';
+  tbody.innerHTML = '';
+  done.forEach(d => {
+    const betrag = (d.rechnungsbetrag != null)
+      ? d.rechnungsbetrag.toLocaleString('de-DE', {minimumFractionDigits:2}) + ' €'
+      : '<span style="color:var(--text2);">—</span>';
+    const rechnung = d.rechnung_filepath
+      ? '<a href="/api/uploads/' + encodeURIComponent(d.rechnung_filepath) + '" target="_blank" rel="noopener" style="color:var(--ff-blue);" title="' + esc(d.rechnung_filename || 'Rechnung') + '"><i class="ti ti-file-type-pdf"></i> PDF</a>'
+      : '<span style="color:var(--text2);">—</span>';
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td data-label="Nr." style="font-weight:600;color:var(--ff-blue);font-size:12px;">' + esc(d.nr) + '</td>'
+      + '<td data-label="Bezeichnung">' + esc(d.bezeichnung) + '</td>'
+      + '<td data-label="Lieferant" style="font-size:12px;">' + (d.beschafft_lieferant ? esc(d.beschafft_lieferant) : '<span style="color:var(--text2);">—</span>') + '</td>'
+      + '<td data-label="Rechnungsbetrag" style="text-align:right;">' + betrag + '</td>'
+      + '<td data-label="Beschafft am" style="font-size:12px;color:var(--text2);">' + (d.beschafft_am || '—') + '</td>'
+      + '<td data-label="Rechnung" style="white-space:nowrap;">' + rechnung + '</td>'
+      + '<td data-label="" style="white-space:nowrap;">'
+      + '<button class="btn-secondary" style="padding:4px 9px;font-size:12px;" onclick="openDetailModal(getProposalByNr(\'' + esc(d.nr) + '\'))" title="Details"><i class="ti ti-eye"></i></button>'
+      + (isBeschaffer() ? ' <button class="btn-secondary" style="padding:4px 9px;font-size:12px;" onclick="openBeschaffungModal(\'' + esc(d.nr) + '\', false)" title="Beschaffungsdaten bearbeiten"><i class="ti ti-pencil"></i></button>' : '')
+      + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// ══════════════════ BESCHAFFUNG-ABSCHLUSS ══════════════════
+let beschaffungNr = null;
+
+async function openBeschaffungModal(nr, fromChip) {
+  beschaffungNr = nr;
+  const p = getProposalByNr(nr) || {};
+  const sel = document.getElementById('bm-supplier');
+  sel.innerHTML = '<option value="">— Bitte wählen —</option>';
+  try {
+    const r = await fetch('/api/suppliers');
+    if (r.ok) {
+      (await r.json()).filter(s => !s.test).forEach(s => {
+        sel.innerHTML += '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>';
+      });
+    }
+  } catch {}
+  sel.value = p.beschafft_supplier_id ? String(p.beschafft_supplier_id) : '';
+  document.getElementById('bm-betrag').value = (p.rechnungsbetrag != null) ? p.rechnungsbetrag : '';
+  document.getElementById('bm-pdf').value = '';
+  const cur = document.getElementById('bm-pdf-current');
+  if (p.rechnung_filename) {
+    cur.textContent = 'Vorhanden: ' + p.rechnung_filename + ' (neue Datei ersetzt die alte)';
+    cur.style.display = '';
+  } else { cur.style.display = 'none'; }
+  document.getElementById('bm-error').style.display = 'none';
+  document.getElementById('bm-intro').style.display = fromChip ? '' : 'none';
+  const req = !!window.BESCHAFFUNG_REQUIRED;
+  document.getElementById('bm-req-1').style.display = req ? '' : 'none';
+  document.getElementById('bm-req-2').style.display = req ? '' : 'none';
+  document.getElementById('bm-skip').style.display = (!req && fromChip) ? '' : 'none';
+  document.getElementById('beschaffung-modal-overlay').classList.add('show');
+}
+
+function closeBeschaffungModal() {
+  document.getElementById('beschaffung-modal-overlay').classList.remove('show');
+  beschaffungNr = null;
+}
+
+async function saveBeschaffung(skip) {
+  if (!beschaffungNr) return;
+  const errEl = document.getElementById('bm-error');
+  const supplierId = document.getElementById('bm-supplier').value;
+  const betrag = document.getElementById('bm-betrag').value.trim();
+  if (!skip && window.BESCHAFFUNG_REQUIRED && (!supplierId || !betrag)) {
+    errEl.textContent = 'Lieferant und Rechnungsbetrag sind erforderlich.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const fd = new FormData();
+  if (!skip) {
+    fd.append('supplier_id', supplierId);
+    fd.append('rechnungsbetrag', betrag);
+    const pdf = document.getElementById('bm-pdf').files[0];
+    if (pdf) fd.append('pdf', pdf);
+  }
+  const btn = document.getElementById('bm-save');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/proposals/' + encodeURIComponent(beschaffungNr) + '/beschaffung', {
+      method: 'POST', body: fd,
+    });
+    if (r.ok) {
+      const updated = await r.json();
+      const idx = proposals.findIndex(p => p.nr === updated.nr);
+      if (idx >= 0) proposals[idx] = updated;
+      // Chips im offenen Detail-Modal nachziehen
+      if (currentDetailProposal && currentDetailProposal.nr === updated.nr) {
+        currentDetailProposal = updated;
+        document.querySelectorAll('#dm-ablauf-chips .ablauf-chip').forEach(c => {
+          c.classList.toggle('active', Array.isArray(updated.ablauf) && updated.ablauf.includes(c.dataset.val));
+        });
+      }
+      renderList(); renderHistorie();
+      closeBeschaffungModal();
+      showToast(skip ? 'Als beschafft markiert.' : 'Beschaffungsdaten gespeichert.');
+    } else {
+      const e = await r.json().catch(() => ({}));
+      errEl.textContent = e.error || 'Fehler beim Speichern.';
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent = 'Netzwerkfehler.';
+    errEl.style.display = 'block';
+  }
+  btn.disabled = false;
 }
 
 // ══════════════════ TOAST ══════════════════

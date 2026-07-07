@@ -341,7 +341,19 @@ def update_proposal(nr):
     if 'ablauf' in data:
         ablauf = data['ablauf']
         if isinstance(ablauf, list):
-            proposal.ablauf = json.dumps([s for s in ablauf if s in _ABLAUF_VALUES])
+            from .models import get_beschaffung_required
+            new_list = [s for s in ablauf if s in _ABLAUF_VALUES]
+            was = 'Beschafft' in json.loads(proposal.ablauf or '[]')
+            wird = 'Beschafft' in new_list
+            if wird and not was and get_beschaffung_required() and (
+                    proposal.beschafft_supplier_id is None or proposal.rechnungsbetrag is None):
+                return jsonify({'error': 'Bitte zuerst die Beschaffungsdaten erfassen '
+                                         '(Lieferant und Rechnungsbetrag sind Pflicht)'}), 400
+            proposal.ablauf = json.dumps(new_list)
+            if wird and not proposal.beschafft_am:
+                proposal.beschafft_am = datetime.utcnow()
+            elif not wird:
+                proposal.beschafft_am = None   # zurück in die Investitionsliste; Daten bleiben
     if 'notizen' in data:
         proposal.notizen = data['notizen'] or ''
     if 'prioritaet' in data:
@@ -382,6 +394,98 @@ def update_proposal(nr):
     return jsonify(proposal.to_dict())
 
 
+@api_bp.route('/proposals/<path:nr>/beschaffung', methods=['POST'])
+@beschaffer_required
+def set_beschaffung(nr):
+    """Beschaffungsabschluss erfassen/nachtragen (Lieferant, Rechnungsbetrag, Rechnung).
+
+    Setzt zusätzlich "Beschafft" im Ablauf (Vorgang wandert in die Historie).
+    Leerer Aufruf = "Überspringen" – nur erlaubt, wenn keine Pflicht konfiguriert ist."""
+    from .models import get_beschaffung_required
+    proposal = Proposal.query.filter_by(nr=nr).first_or_404()
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        form = request.form
+    else:
+        form = request.get_json() or {}
+
+    _before = {'lieferant': proposal.beschafft_lieferant,
+               'rechnungsbetrag': proposal.rechnungsbetrag,
+               'rechnung': proposal.rechnung_filename}
+
+    if 'supplier_id' in form:
+        sid_raw = form.get('supplier_id')
+        if sid_raw in (None, ''):
+            proposal.beschafft_supplier_id = None
+            proposal.beschafft_lieferant = ''
+        else:
+            try:
+                sid = int(sid_raw)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Ungültige Lieferanten-ID'}), 400
+            supplier = db.session.get(Supplier, sid)
+            if not supplier:
+                return jsonify({'error': 'Lieferant nicht gefunden'}), 404
+            if supplier.is_test:
+                return jsonify({'error': 'Test-Lieferanten sind nicht zulässig'}), 400
+            proposal.beschafft_supplier_id = supplier.id
+            proposal.beschafft_lieferant = supplier.name   # Snapshot
+
+    if 'rechnungsbetrag' in form:
+        rb_raw = form.get('rechnungsbetrag')
+        if rb_raw in (None, ''):
+            proposal.rechnungsbetrag = None
+        else:
+            val, err = _parse_amount(rb_raw)
+            if err:
+                return jsonify({'error': f'Rechnungsbetrag: {err}'}), 400
+            proposal.rechnungsbetrag = val
+
+    # Pflicht-Prüfung auf den ENDzustand (auch fürs Nachtragen/Leeren) –
+    # vor dem PDF-Handling, damit bei Ablehnung keine Datei angefasst wird.
+    if get_beschaffung_required() and (
+            proposal.beschafft_supplier_id is None or proposal.rechnungsbetrag is None):
+        db.session.rollback()
+        return jsonify({'error': 'Lieferant und Rechnungsbetrag sind erforderlich'}), 400
+
+    # Optionales Rechnungs-PDF (ersetzt eine vorhandene Rechnung)
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        pdf = request.files.get('pdf')
+        if _is_pdf_upload(pdf):
+            upload_folder = current_app.config['UPLOAD_FOLDER']
+            if proposal.rechnung_filepath:
+                old = os.path.join(upload_folder, proposal.rechnung_filepath)
+                if os.path.exists(old):
+                    try:
+                        os.remove(old)
+                    except OSError:
+                        pass
+            filename = secure_filename(pdf.filename)
+            if not filename.lower().endswith('.pdf'):
+                filename += '.pdf'
+            safe_name = f'rechnung_{nr.replace("/", "-")}_{filename}'
+            pdf.save(os.path.join(upload_folder, safe_name))
+            proposal.rechnung_filename = filename
+            proposal.rechnung_filepath = safe_name
+
+    ablauf = json.loads(proposal.ablauf or '[]')
+    if 'Beschafft' not in ablauf:
+        ablauf.append('Beschafft')
+        proposal.ablauf = json.dumps(ablauf)
+    if not proposal.beschafft_am:
+        proposal.beschafft_am = datetime.utcnow()
+    db.session.commit()
+
+    _after = {'lieferant': proposal.beschafft_lieferant,
+              'rechnungsbetrag': proposal.rechnungsbetrag,
+              'rechnung': proposal.rechnung_filename}
+    changes = audit_diff(_before, _after, {
+        'lieferant': 'Lieferant', 'rechnungsbetrag': 'Rechnungsbetrag', 'rechnung': 'Rechnung',
+    })
+    audit_log('proposal.beschafft', f'Vorschlag {nr}',
+              f'„{proposal.bezeichnung}" als beschafft markiert' + (f' – {changes}' if changes else ''))
+    return jsonify(proposal.to_dict())
+
+
 @api_bp.route('/proposals/<path:nr>', methods=['DELETE'])
 @beschaffer_required
 def delete_proposal(nr):
@@ -391,6 +495,10 @@ def delete_proposal(nr):
         filepath = os.path.join(upload_folder, att.filepath or '')
         if att.filepath and os.path.exists(filepath):
             os.remove(filepath)
+    if proposal.rechnung_filepath:
+        rpath = os.path.join(upload_folder, proposal.rechnung_filepath)
+        if os.path.exists(rpath):
+            os.remove(rpath)
     bez = proposal.bezeichnung
     db.session.delete(proposal)
     db.session.commit()
@@ -660,7 +768,10 @@ def get_upload(filename):
         quote = Quote.query.filter(
             (Quote.filepath == filename) | (Quote.eml_path == filename)
         ).first()
-        nr = att.proposal_nr if att else (quote.proposal_nr if quote else None)
+        inv = Proposal.query.filter_by(rechnung_filepath=filename).first()
+        nr = (att.proposal_nr if att
+              else quote.proposal_nr if quote
+              else inv.nr if inv else None)
         if not nr:
             abort(404)
         p = Proposal.query.filter_by(nr=nr).first()
@@ -895,6 +1006,7 @@ _M365_KEYS = ('mail_provider', 'm365_tenant', 'm365_client_id', 'm365_client_sec
 _FORM_KEYS = ('form_heading', 'form_intro')
 _ABTEILUNG_KEYS = ('abteilung_1', 'abteilung_2', 'abteilung_3', 'abteilung_4', 'abteilung_5',
                    'abteilung_required')
+_HISTORIE_KEYS = ('beschaffung_required',)
 _BRAND_KEYS = ('brand_name', 'brand_subtitle', 'brand_address', 'brand_color_primary',
                'brand_color_accent', 'brand_color_bg')
 _PROPOSAL_MAIL_KEYS = ('approve_subject', 'approve_body', 'reject_subject', 'reject_body')
@@ -905,7 +1017,7 @@ _PROPOSAL_MAIL_KEYS = ('approve_subject', 'approve_body', 'reject_subject', 'rej
 def get_settings():
     result = {}
     for key in (_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS
-                + _PROPOSAL_MAIL_KEYS + _M365_KEYS + _ABTEILUNG_KEYS):
+                + _PROPOSAL_MAIL_KEYS + _M365_KEYS + _ABTEILUNG_KEYS + _HISTORIE_KEYS):
         val = Settings.get(key)
         if key in ('smtp_password', 'imap_password', 'm365_client_secret'):
             result[key] = _MASK if val else ''
@@ -968,7 +1080,7 @@ def update_settings():
             Settings.set('vergabe_tiers', json.dumps(cleaned, ensure_ascii=False))
 
     allowed = set(_SMTP_KEYS + _TEMPLATE_KEYS + _IMAP_KEYS + _FORM_KEYS + _BRAND_KEYS
-                  + _PROPOSAL_MAIL_KEYS + _M365_KEYS + _ABTEILUNG_KEYS)
+                  + _PROPOSAL_MAIL_KEYS + _M365_KEYS + _ABTEILUNG_KEYS + _HISTORIE_KEYS)
     _changed = []
     for key, value in data.items():
         if key not in allowed:

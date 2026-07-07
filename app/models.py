@@ -72,6 +72,13 @@ class Proposal(db.Model):
     geplanter_zeitpunkt = db.Column(db.String(20))  # geplantes Beschaffungsjahr, z. B. "2028"
     rejection_reason = db.Column(db.Text)  # Ablehnungsgrund (nur bei status='rejected')
     abteilung = db.Column(db.String(200))  # gewählte Abteilung (konfigurierbar)
+    # Beschaffungsabschluss (Historie): gesetzt, wenn Ablauf "Beschafft" enthält
+    beschafft_am = db.Column(db.DateTime, nullable=True)
+    beschafft_supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
+    beschafft_lieferant = db.Column(db.String(200))   # Name-Snapshot (Lieferant könnte gelöscht werden)
+    rechnungsbetrag = db.Column(db.Float, nullable=True)   # None = noch nicht erfasst (≠ 0)
+    rechnung_filepath = db.Column(db.String(512))
+    rechnung_filename = db.Column(db.String(256))
 
     attachments = db.relationship('Attachment', backref='proposal', lazy=True,
                                   cascade='all, delete-orphan')
@@ -111,6 +118,12 @@ class Proposal(db.Model):
             'geplanter_zeitpunkt': self.geplanter_zeitpunkt or '',
             'rejection_reason': self.rejection_reason or '',
             'abteilung': self.abteilung or '',
+            'beschafft_am': self.beschafft_am.strftime('%d.%m.%Y') if self.beschafft_am else None,
+            'beschafft_supplier_id': self.beschafft_supplier_id,
+            'beschafft_lieferant': self.beschafft_lieferant or '',
+            'rechnungsbetrag': self.rechnungsbetrag,
+            'rechnung_filepath': self.rechnung_filepath or '',
+            'rechnung_filename': self.rechnung_filename or '',
         }
 
 
@@ -305,6 +318,11 @@ def get_abteilungen():
         'options': [o for o in opts if o],
         'required': Settings.get('abteilung_required') == 'true',
     }
+
+
+def get_beschaffung_required():
+    """Sind Lieferant + Rechnungsbetrag beim Abschluss ("Beschafft") Pflicht?"""
+    return Settings.get('beschaffung_required') == 'true'
 
 
 # ── Branding / Erscheinungsbild (konfigurierbar, update-sicher im data-Volume) ──

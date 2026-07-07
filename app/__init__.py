@@ -138,6 +138,13 @@ def _migrate():
         'ALTER TABLE proposals ADD COLUMN geplanter_zeitpunkt VARCHAR(20)',
         'ALTER TABLE proposals ADD COLUMN rejection_reason TEXT',
         'ALTER TABLE proposals ADD COLUMN abteilung VARCHAR(200)',
+        # Beschaffungsabschluss / Historie
+        'ALTER TABLE proposals ADD COLUMN beschafft_am DATETIME',
+        'ALTER TABLE proposals ADD COLUMN beschafft_supplier_id INTEGER REFERENCES suppliers(id)',
+        'ALTER TABLE proposals ADD COLUMN beschafft_lieferant VARCHAR(200)',
+        'ALTER TABLE proposals ADD COLUMN rechnungsbetrag FLOAT',
+        'ALTER TABLE proposals ADD COLUMN rechnung_filepath VARCHAR(512)',
+        'ALTER TABLE proposals ADD COLUMN rechnung_filename VARCHAR(256)',
         '''CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             created_at DATETIME,

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 
-from .models import get_vergabe_tiers, get_form_texts, get_branding, get_abteilungen
+from .models import (get_vergabe_tiers, get_form_texts, get_branding, get_abteilungen,
+                     get_beschaffung_required)
 from .version import get_version_info
 
 main_bp = Blueprint('main', __name__)
@@ -13,6 +14,7 @@ def index():
                            form_texts=get_form_texts(),
                            branding=get_branding(),
                            abteilungen=get_abteilungen(),
+                           beschaffung_required=get_beschaffung_required(),
                            app_version=get_version_info()['version'])
 
 
