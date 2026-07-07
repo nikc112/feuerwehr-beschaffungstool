@@ -8,3 +8,15 @@ __pycache__/
 .DS_Store
 *.db
 *.sqlite
+
+# Lokaler Claude-Code Umzugs-Ordner (nicht versionieren)
+claude-umzug/
+
+# Superpowers-Plugin Laufzeit-State (lokal)
+.superpowers/
+
+# Interne Notizen / lokale Arbeitsartefakte (nicht veröffentlichen)
+SETUP-NEUER-PC.md
+.playwright-mcp/
+/*.png
+.remember/
