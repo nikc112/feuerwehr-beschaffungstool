@@ -1,5 +1,16 @@
 FROM python:3.11-slim
 
+# Versionsinfos aus dem CI-Build (Fallback: dev bei lokalem Build)
+ARG APP_VERSION=dev
+ARG GIT_COMMIT=unbekannt
+ARG BUILD_DATE=unbekannt
+ENV APP_VERSION=$APP_VERSION \
+    GIT_COMMIT=$GIT_COMMIT \
+    BUILD_DATE=$BUILD_DATE
+LABEL org.opencontainers.image.version=$APP_VERSION \
+      org.opencontainers.image.revision=$GIT_COMMIT \
+      org.opencontainers.image.created=$BUILD_DATE
+
 WORKDIR /app
 
 # gosu für sauberen Privilegienabbau im Entrypoint

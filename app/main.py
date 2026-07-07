@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 
 from .models import get_vergabe_tiers, get_form_texts, get_branding, get_abteilungen
+from .version import get_version_info
 
 main_bp = Blueprint('main', __name__)
 
@@ -11,7 +12,14 @@ def index():
                            vergabe_tiers=get_vergabe_tiers(),
                            form_texts=get_form_texts(),
                            branding=get_branding(),
-                           abteilungen=get_abteilungen())
+                           abteilungen=get_abteilungen(),
+                           app_version=get_version_info()['version'])
+
+
+@main_bp.route('/api/version')
+def version():
+    """Laufende Version (öffentlich – wird u. a. im Login-Dialog angezeigt)."""
+    return jsonify(get_version_info())
 
 
 @main_bp.route('/manifest.webmanifest')

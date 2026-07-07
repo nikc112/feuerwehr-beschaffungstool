@@ -876,6 +876,16 @@ def list_audit():
     return jsonify([r.to_dict() for r in rows])
 
 
+# ── VERSION / UPDATE-CHECK ────────────────────────────────────────────────────
+
+@api_bp.route('/update-check', methods=['GET'])
+@admin_required
+def update_check():
+    """Neueste verfügbare Version (GitHub-Tags, gecacht) mit der laufenden vergleichen."""
+    from .version import check_for_update
+    return jsonify(check_for_update())
+
+
 # ── SETTINGS ──────────────────────────────────────────────────────────────────
 
 _SMTP_KEYS = ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from', 'smtp_tls')

@@ -604,7 +604,14 @@ tr:last-child td{border-bottom:none;}
 
 <!-- ══════════════════ VIEW: EINSTELLUNGEN ══════════════════ -->
 <div class="content" id="view-einstellungen" style="display:none;">
-  <span style="font-size:18px;font-weight:600;color:var(--ff-blue);display:block;margin-bottom:16px;">Einstellungen</span>
+  <span style="font-size:18px;font-weight:600;color:var(--ff-blue);display:block;margin-bottom:6px;">Einstellungen</span>
+
+  <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">
+    Installierte Version: <strong>{{ app_version }}</strong>
+    <span id="update-notice" style="display:none;color:#b45309;font-weight:600;margin-left:10px;">
+      <i class="ti ti-refresh-alert"></i> Neue Version <span id="update-latest"></span> verfügbar – <code style="font-size:11px;">docker compose pull &amp;&amp; docker compose up -d</code>
+    </span>
+  </div>
 
   <div class="settings-tabs" id="settings-tabs">
     <button class="settings-tab active" data-pane="erscheinungsbild" onclick="showSettingsPane('erscheinungsbild')"><i class="ti ti-palette"></i> Erscheinungsbild</button>
@@ -971,6 +978,7 @@ tr:last-child td{border-bottom:none;}
       <div class="field"><label>Benutzername oder E-Mail</label><input type="text" id="lm-user" autocomplete="username" /></div>
       <div class="field" style="margin-top:12px;"><label>Passwort</label><input type="password" id="lm-pass" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginFromModal()" /></div>
       <div class="login-error" id="lm-error" style="display:none;margin-top:10px;"></div>
+      <div style="margin-top:14px;text-align:center;font-size:11px;color:var(--text2);opacity:.7;">Version {{ app_version }}</div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeLoginModal()">Abbrechen</button>
@@ -1817,6 +1825,13 @@ async function loadSettingsTab() {
   if (Array.isArray(d.vergabe_tiers)) window.VERGABE_TIERS = d.vergabe_tiers;
   renderVergabeEditor(window.VERGABE_TIERS);
   showSettingsPane('erscheinungsbild');
+  // Update-Hinweis (best effort – Fehler bleiben still)
+  fetch('/api/update-check').then(r => r.ok ? r.json() : null).then(d => {
+    if (d && d.update_available === true) {
+      document.getElementById('update-latest').textContent = d.latest;
+      document.getElementById('update-notice').style.display = '';
+    }
+  }).catch(() => {});
 }
 
 // ══════════════════ EINSTELLUNGEN: UNTERREITER ══════════════════
