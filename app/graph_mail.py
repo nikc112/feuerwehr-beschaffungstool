@@ -16,6 +16,7 @@ import json
 import time
 import base64
 import logging
+import uuid
 import urllib.parse
 import urllib.request
 import urllib.error
@@ -174,7 +175,8 @@ def poll_graph_once(app):
                 eml_name = None
                 try:
                     raw = _api('GET', f'/users/{mbox}/messages/{mid_q}/$value', token, raw=True)
-                    eml_name = f'email_{int(time.time())}.eml'
+                    # Zufalls-Suffix gegen Überschreiben bei zwei Mails in derselben Sekunde
+                    eml_name = f'email_{int(time.time())}_{uuid.uuid4().hex[:8]}.eml'
                     with open(os.path.join(upload_dir, eml_name), 'wb') as fh:
                         fh.write(raw)
                 except Exception as e:
@@ -196,7 +198,7 @@ def poll_graph_once(app):
                             safe = re.sub(r'[^\w.\-]', '_', name)
                             if not safe.lower().endswith('.pdf'):
                                 safe += '.pdf'
-                            fname = f'email_{int(time.time())}_{safe}'
+                            fname = f'email_{int(time.time())}_{uuid.uuid4().hex[:8]}_{safe}'
                             with open(os.path.join(upload_dir, fname), 'wb') as fh:
                                 fh.write(content)
                             pdfs.append((fname, name))

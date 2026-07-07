@@ -252,7 +252,7 @@ tr:last-child td{border-bottom:none;}
       <p style="font-size:13px;color:var(--text2);margin-bottom:22px;">Willkommen! Legen Sie jetzt den ersten Administrator-Account an.</p>
       <div class="field"><label>Benutzername<span class="required-star">*</span></label><input type="text" id="su-user" autocomplete="username" /></div>
       <div class="field" style="margin-top:12px;"><label>E-Mail<span class="required-star">*</span></label><input type="email" id="su-email" autocomplete="email" placeholder="name@ff.de" /></div>
-      <div class="field" style="margin-top:12px;"><label>Passwort<span class="required-star">*</span> <span style="font-weight:400;">(min. 6 Zeichen)</span></label><input type="password" id="su-pass" autocomplete="new-password" /></div>
+      <div class="field" style="margin-top:12px;"><label>Passwort<span class="required-star">*</span> <span style="font-weight:400;">(min. 8 Zeichen)</span></label><input type="password" id="su-pass" autocomplete="new-password" /></div>
       <div class="field" style="margin-top:12px;"><label>Passwort wiederholen<span class="required-star">*</span></label><input type="password" id="su-pass2" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSetup()" /></div>
       <div class="login-error" id="su-error" style="display:none;margin-top:10px;"></div>
       <button class="btn-primary" style="width:100%;justify-content:center;margin-top:20px;" onclick="doSetup()"><i class="ti ti-shield-check"></i> Admin-Account anlegen</button>
@@ -580,7 +580,7 @@ tr:last-child td{border-bottom:none;}
     <div class="mgmt-add" style="margin-top:10px;">
       <div class="mgmt-add-grid">
         <div class="field"><label>Benutzername<span class="required-star">*</span></label><input type="text" id="nu-name" autocomplete="off" /></div>
-        <div class="field"><label>Passwort<span class="required-star">*</span> <span style="font-weight:400;">(min. 6 Zeichen)</span></label><input type="password" id="nu-pass" autocomplete="new-password" /></div>
+        <div class="field"><label>Passwort<span class="required-star">*</span> <span style="font-weight:400;">(min. 8 Zeichen)</span></label><input type="password" id="nu-pass" autocomplete="new-password" /></div>
         <div class="field">
           <label>Rolle</label>
           <select id="nu-role">
@@ -947,7 +947,7 @@ tr:last-child td{border-bottom:none;}
     <div class="modal-body">
       <input type="hidden" id="edit-user-id" />
       <div class="field" style="margin-bottom:12px;"><label>Benutzername<span class="required-star">*</span></label><input type="text" id="edit-user-name" autocomplete="off" /></div>
-      <div class="field"><label>Neues Passwort <span style="font-weight:400;color:var(--text2);">(min. 6 Zeichen – leer lassen = unverändert)</span></label><input type="password" id="edit-user-pass" autocomplete="new-password" placeholder="●●●●●●" /></div>
+      <div class="field"><label>Neues Passwort <span style="font-weight:400;color:var(--text2);">(min. 8 Zeichen – leer lassen = unverändert)</span></label><input type="password" id="edit-user-pass" autocomplete="new-password" placeholder="●●●●●●" /></div>
       <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 14px;margin-top:12px;font-size:12px;border:1px solid var(--border);">
         <i class="ti ti-info-circle" style="color:var(--ff-blue);"></i>
         Rolle, E-Mail und Benachrichtigung änderst du direkt in der Tabelle.
@@ -1418,7 +1418,7 @@ async function doSetup() {
   errEl.style.display = 'none';
   if (!username) { errEl.textContent = 'Benutzername erforderlich'; errEl.style.display = 'block'; return; }
   if (!email || !email.includes('@')) { errEl.textContent = 'Gültige E-Mail-Adresse erforderlich'; errEl.style.display = 'block'; return; }
-  if (pass.length < 6) { errEl.textContent = 'Passwort muss min. 6 Zeichen haben'; errEl.style.display = 'block'; return; }
+  if (pass.length < 8) { errEl.textContent = 'Passwort muss min. 8 Zeichen haben'; errEl.style.display = 'block'; return; }
   if (pass !== pass2) { errEl.textContent = 'Passwörter stimmen nicht überein'; errEl.style.display = 'block'; return; }
   const r = await fetch('/api/auth/setup', {
     method: 'POST',
@@ -2280,7 +2280,7 @@ async function saveUserEdit() {
   const username = document.getElementById('edit-user-name').value.trim();
   const password = document.getElementById('edit-user-pass').value;
   if (!username) { showToast('Benutzername darf nicht leer sein.'); return; }
-  if (password && password.length < 6) { showToast('Passwort muss mindestens 6 Zeichen haben.'); return; }
+  if (password && password.length < 8) { showToast('Passwort muss mindestens 8 Zeichen haben.'); return; }
   const payload = {username};
   if (password) payload.password = password;
   const r = await fetch('/api/users/' + id, {
@@ -2304,7 +2304,7 @@ async function addUser() {
   const role = document.getElementById('nu-role').value;
   const email = document.getElementById('nu-email').value.trim();
   const notify = document.getElementById('nu-notify').checked;
-  if (!username || password.length < 6) { showToast('Benutzername und Passwort (min. 6 Zeichen) erforderlich.'); return; }
+  if (!username || password.length < 8) { showToast('Benutzername und Passwort (min. 8 Zeichen) erforderlich.'); return; }
   if (!email || !email.includes('@')) { showToast('Gültige E-Mail-Adresse erforderlich.'); return; }
   const r = await fetch('/api/users', {
     method: 'POST',
@@ -2602,7 +2602,7 @@ function openDetailModal(proposal) {
   document.getElementById('dm-risiken').textContent = proposal.risiken || '—';
   document.getElementById('dm-kosten-anzeige').textContent = (proposal.kosten || 0).toLocaleString('de-DE') + ' € netto (Schätzung)';
   document.getElementById('dm-prio').innerHTML = proposal.prioritaet && proposal.prioritaet !== '—'
-    ? '<span class="prio-badge ' + prioClass(proposal.prioritaet) + '">' + proposal.prioritaet + '</span>' : '—';
+    ? '<span class="prio-badge ' + prioClass(proposal.prioritaet) + '">' + esc(proposal.prioritaet) + '</span>' : '—';
   document.getElementById('dm-foerderung').textContent = proposal.foerderung || '—';
   const filesEl = document.getElementById('dm-files');
   if (proposal.files && proposal.files.length) {
@@ -3007,11 +3007,11 @@ function printProposal() {
       <div style="font-weight:700;color:#0785B7;margin-bottom:10px;font-size:13px;">Interne Beurteilung</div>
       <table class="print-table">
         <tr><td>Geschätzte Kosten</td><td>${k.toLocaleString('de-DE')} € netto</td></tr>
-        <tr><td>Vergabeverfahren (SHVgVO)</td><td>${v.label}</td></tr>
-        <tr><td>Beschaffungsart</td><td>${beschaffungsart}</td></tr>
+        <tr><td>Vergabeverfahren (SHVgVO)</td><td>${esc(v.label)}</td></tr>
+        <tr><td>Beschaffungsart</td><td>${esc(beschaffungsart)}</td></tr>
         <tr><td>Ablauf-Status</td><td>${ablauf.length ? ablauf.join(' → ') : '—'}</td></tr>
       </table>
-      ${notizen ? `<div class="print-section" style="margin-top:10px;"><div class="print-label">Notizen / Empfehlung</div><div class="print-text">${notizen.replace(/\n/g,'<br>')}</div></div>` : ''}
+      ${notizen ? `<div class="print-section" style="margin-top:10px;"><div class="print-label">Notizen / Empfehlung</div><div class="print-text">${esc(notizen).replace(/\n/g,'<br>')}</div></div>` : ''}
     </div>
     <div style="margin-top:28px;border-top:1px solid #e0e4ea;padding-top:10px;display:flex;justify-content:space-between;font-size:11px;color:#888;">
       <div>${esc(orgName)}${orgAddr ? ' · ' + esc(orgAddr) : ''}</div>
@@ -3145,7 +3145,7 @@ function renderList() {
         +'<td data-label="Kosten" style="text-align:right;">'+(d.kosten||0).toLocaleString('de-DE')+' €</td>'
         +'<td data-label="Priorität"><span class="prio-badge '+prioClass(d.prioritaet)+'">'+esc(d.prioritaet)+'</span></td>'
         +'<td data-label="Geplant" style="font-size:12px;">'+(d.geplanter_zeitpunkt ? esc(d.geplanter_zeitpunkt) : '<span style="color:var(--text2);">—</span>')+'</td>'
-        +'<td data-label="Vergabeverfahren"><span class="vergabe-badge '+v.cls+'"><i class="ti '+v.icon+'" style="font-size:12px;"></i> '+v.label+'</span></td>'
+        +'<td data-label="Vergabeverfahren"><span class="vergabe-badge '+v.cls+'"><i class="ti '+v.icon+'" style="font-size:12px;"></i> '+esc(v.label)+'</span></td>'
         +'<td data-label="Ablauf"><div style="display:flex;gap:4px;">'+ablaufDots(d.ablauf)+'</div></td>'
         +'<td data-label="" style="white-space:nowrap;"><button class="btn-secondary" style="padding:4px 9px;font-size:12px;" onclick="openDetailModal(getProposalByNr(\''+d.nr+'\'))" title="Details / Bearbeiten"><i class="ti ti-eye"></i></button>'
         +(isBeschaffer() ? ' <button class="btn-danger" onclick="deleteEntry(\''+d.nr+'\')"><i class="ti ti-trash"></i></button>' : '')+'</td>';

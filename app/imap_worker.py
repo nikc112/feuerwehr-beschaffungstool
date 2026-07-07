@@ -8,6 +8,7 @@ import re
 import threading
 import time
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +44,11 @@ def _decode_part_payload(part):
 
 
 def _save_raw_email(upload_dir, raw_email, ts):
-    """Roh-Mail (RFC822-Bytes) als email_<ts>.eml ablegen, Dateinamen zurückgeben."""
-    safe = f'email_{ts}.eml'
+    """Roh-Mail (RFC822-Bytes) als email_<ts>_<uid>.eml ablegen, Dateinamen zurückgeben.
+
+    Zufalls-Suffix verhindert, dass sich zwei Mails aus derselben Sekunde
+    gegenseitig überschreiben."""
+    safe = f'email_{ts}_{uuid.uuid4().hex[:8]}.eml'
     fpath = os.path.join(upload_dir, safe)
     with open(fpath, 'wb') as fh:
         fh.write(raw_email)
@@ -142,7 +146,8 @@ def poll_imap_once(app):
                                 # Endung wie .html/.svg beim spaeteren Ausliefern)
                                 if not safe_name.lower().endswith('.pdf'):
                                     safe_name += '.pdf'
-                                safe = f'email_{ts}_{safe_name}'
+                                # Zufalls-Suffix gegen Überschreiben bei gleichem Namen/Sekunde
+                                safe = f'email_{ts}_{uuid.uuid4().hex[:8]}_{safe_name}'
                                 fpath = os.path.join(upload_dir, safe)
                                 with open(fpath, 'wb') as fh:
                                     fh.write(payload)

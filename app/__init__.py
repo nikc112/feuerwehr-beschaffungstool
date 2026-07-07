@@ -79,6 +79,27 @@ def create_app():
     def unauthorized():
         return jsonify({'error': 'Nicht angemeldet'}), 401
 
+    # Security-Header für alle Antworten. setdefault, damit Routen mit eigener,
+    # strengerer Policy (E-Mail-Ansicht, Logo) nicht überschrieben werden.
+    # SAMEORIGIN statt DENY: die Original-Mail-Ansicht läuft in einem eigenen iframe.
+    _CSP = ("default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "font-src 'self' https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; "
+            "connect-src 'self'; "
+            "object-src 'none'; base-uri 'self'; form-action 'self'; "
+            "frame-ancestors 'self'")
+
+    @app.after_request
+    def _security_headers(resp):
+        resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+        resp.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+        resp.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+        if (resp.content_type or '').startswith('text/html'):
+            resp.headers.setdefault('Content-Security-Policy', _CSP)
+        return resp
+
     with app.app_context():
         from .models import User, Supplier, Proposal, Settings, Alternative, Quote  # noqa: F401
         db.create_all()

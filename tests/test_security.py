@@ -134,3 +134,55 @@ def test_upload_idor_betrachter(app, client, monkeypatch):
     client.post('/api/proposals/' + nr + '/approve')
     _login(client, 'bet')
     assert client.get('/api/uploads/' + path).status_code == 200   # genehmigt -> erlaubt
+
+
+# ── Stored-XSS-Schutz: öffentliches Formular akzeptiert nur bekannte Werte ──────
+def test_proposal_rejects_unknown_prioritaet(app, client, auth_client, monkeypatch):
+    nr = _create_proposal(client, monkeypatch,
+                          prioritaet='<img src=x onerror=alert(1)>',
+                          kategorie='Fahrzeug,<script>evil</script>',
+                          anlass='Erweiterung,böse')
+    p = [x for x in auth_client.get('/api/proposals?status=pending').get_json() if x['nr'] == nr][0]
+    assert p['prioritaet'] == '—'                 # unbekannte Priorität verworfen
+    assert p['kategorie'] == 'Fahrzeug'           # nur gültige Kategorie bleibt
+    assert p['anlass'] == 'Erweiterung'           # nur gültiger Anlass bleibt
+
+
+def test_proposal_rejects_invalid_kosten(app, client, monkeypatch):
+    monkeypatch.setattr('app.api.notify_new_proposal', lambda *a, **k: None)
+    data = {'bezeichnung': 'X', 'einreicher_email': 'm@e.de', 'kosten': 'NaN'}
+    r = client.post('/api/proposals', data=data, content_type='multipart/form-data')
+    assert r.status_code == 400
+
+
+# ── IDOR: Betrachter dürfen Angebote/Alternativen/Mail nicht-genehmigter Vorschläge nicht sehen ──
+def test_quotes_alternatives_idor_betrachter(app, client, monkeypatch):
+    _user(app, 'admin', 'adm')
+    _user(app, 'betrachter', 'bet')
+    nr = _create_proposal(client, monkeypatch)
+    _login(client, 'bet')
+    assert client.get('/api/proposals/' + nr + '/quotes').status_code == 403
+    assert client.get('/api/proposals/' + nr + '/alternatives').status_code == 403
+    _login(client, 'adm')
+    client.post('/api/proposals/' + nr + '/approve')
+    _login(client, 'bet')
+    assert client.get('/api/proposals/' + nr + '/quotes').status_code == 200
+    assert client.get('/api/proposals/' + nr + '/alternatives').status_code == 200
+
+
+# ── Passwort-Mindestlänge 8 ────────────────────────────────────────────────────
+def test_password_min_length_enforced(app, auth_client):
+    r = auth_client.post('/api/users', json={'username': 'kurz', 'password': 'abc1234',
+                                             'email': 'k@e.de', 'role': 'betrachter'})
+    assert r.status_code == 400                   # 7 Zeichen -> abgelehnt
+    r = auth_client.post('/api/users', json={'username': 'ok', 'password': 'abcd1234',
+                                             'email': 'o@e.de', 'role': 'betrachter'})
+    assert r.status_code == 201                   # 8 Zeichen -> ok
+
+
+# ── Security-Header auf der Hauptseite ─────────────────────────────────────────
+def test_security_headers_on_index(app, client):
+    r = client.get('/')
+    assert r.headers.get('X-Content-Type-Options') == 'nosniff'
+    assert r.headers.get('X-Frame-Options') == 'SAMEORIGIN'
+    assert 'default-src' in (r.headers.get('Content-Security-Policy') or '')

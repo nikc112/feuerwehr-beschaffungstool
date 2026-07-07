@@ -9,7 +9,7 @@ auth_bp = Blueprint('auth', __name__)
 
 
 @auth_bp.route('/login', methods=['POST'])
-@rate_limit(30, 300, 'login')   # max. 30 Versuche / 5 min / IP
+@rate_limit(15, 300, 'login')   # pro Gunicorn-Worker (2) – effektiv ~30 Versuche / 5 min / IP
 def login():
     data = request.get_json() or {}
     ident = (data.get('username') or '').strip()
@@ -49,12 +49,13 @@ def needs_setup():
 def setup():
     if User.query.count() > 0:
         return jsonify({'error': 'Setup bereits abgeschlossen'}), 403
+    from .api import MIN_PASSWORD_LEN
     data = request.get_json() or {}
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
     email = (data.get('email') or '').strip()
-    if not username or len(password) < 6:
-        return jsonify({'error': 'Benutzername oder Passwort ungültig (min. 6 Zeichen)'}), 400
+    if not username or len(password) < MIN_PASSWORD_LEN:
+        return jsonify({'error': f'Benutzername oder Passwort ungültig (min. {MIN_PASSWORD_LEN} Zeichen)'}), 400
     if not email or '@' not in email:
         return jsonify({'error': 'Gültige E-Mail-Adresse erforderlich'}), 400
     user = User(username=username, role='admin', email=email)

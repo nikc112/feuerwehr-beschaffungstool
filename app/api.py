@@ -1,4 +1,5 @@
 import json
+import math
 import os
 from datetime import datetime
 from functools import wraps
@@ -6,6 +7,7 @@ from functools import wraps
 from flask import (Blueprint, request, jsonify, current_app,
                    send_from_directory, make_response, url_for, abort)
 from flask_login import login_required, current_user
+from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
 from .models import (Proposal, Attachment, Supplier, User, Settings, Alternative, Quote,
@@ -21,6 +23,36 @@ from .audit import log as audit_log, diff as audit_diff
 api_bp = Blueprint('api', __name__)
 
 _MASK = '●●●●●●'
+
+# Festwerte des öffentlichen Formulars – serverseitige Allowlists, damit über
+# direkte API-Aufrufe (am UI vorbei) keine beliebigen Strings gespeichert werden
+# (Stored-XSS-Schutz, Datenintegrität).
+_PRIO_VALUES = ('Hoch', 'Mittel', 'Niedrig')
+_KATEGORIE_VALUES = ('Fahrzeug', 'PSA', 'Ausrüstung/Technik', 'Atemschutz',
+                     'Digitalfunk', 'IT/Software', 'Sonstiges')
+_ANLASS_VALUES = ('Ersatzbeschaffung', 'Erweiterung', 'Gesetzliche Anforderung',
+                  'Unfallverhütung', 'Einsatzanforderung', 'Sonstiges')
+_ABLAUF_VALUES = ('Markterkundung', 'Angebote eingeholt', 'Vorstandsbeschluss', 'Beschafft')
+
+MIN_PASSWORD_LEN = 8
+
+
+def _filter_multi(raw, allowed):
+    """Komma-getrennte Mehrfachauswahl auf die erlaubten Werte einschränken."""
+    vals = [v.strip() for v in (raw or '').split(',')]
+    kept = [v for v in vals if v in allowed]
+    return ', '.join(kept) or '—'
+
+
+def _parse_amount(raw):
+    """(wert, fehler): Betrag parsen – muss endlich und 0 ≤ x < 10^9 sein."""
+    try:
+        val = float(raw or 0)
+    except (ValueError, TypeError):
+        return None, 'Ungültiger Betrag'
+    if not math.isfinite(val) or val < 0 or val >= 1e9:
+        return None, 'Betrag muss zwischen 0 und 999.999.999 liegen'
+    return val, None
 
 # {organisation} wird beim Erzeugen der Defaults durch den eingestellten Namen
 # ersetzt (per .replace, damit die übrigen {…}-Platzhalter erhalten bleiben).
@@ -158,7 +190,7 @@ def _next_nr():
 # ── PROPOSALS ──────────────────────────────────────────────────────────────────
 
 @api_bp.route('/proposals', methods=['POST'])
-@rate_limit(20, 600, 'submit')   # max. 20 Einreichungen / 10 min / IP
+@rate_limit(10, 600, 'submit')   # pro Gunicorn-Worker (2) – effektiv ~20 Einreichungen / 10 min / IP
 def create_proposal():
     # Public endpoint by design — no login required, proposals go into pending status for approval
     ct = request.content_type or ''
@@ -185,36 +217,56 @@ def create_proposal():
     if '@' not in einreicher_email or '.' not in einreicher_email.split('@')[-1]:
         return jsonify({'error': 'Gültige E-Mail-Adresse des Einreichers erforderlich'}), 400
     from .models import get_abteilungen
+    _ab = get_abteilungen()
     _ab_vals = [v.strip() for v in form.getlist('abteilung') if v.strip()]
     if len(_ab_vals) == 1 and ',' in _ab_vals[0]:        # einzelnes, bereits zusammengefügtes Feld
         _ab_vals = [v.strip() for v in _ab_vals[0].split(',') if v.strip()]
-    abteilung = ', '.join(_ab_vals)
-    _ab = get_abteilungen()
+    # nur konfigurierte Abteilungen akzeptieren (API-Aufrufe am UI vorbei)
+    abteilung = ', '.join(v for v in _ab_vals if v in _ab['options'])
     if _ab['required'] and _ab['options'] and not abteilung:
         return jsonify({'error': 'Bitte mindestens eine Abteilung auswählen'}), 400
 
-    nr = _next_nr()
-    proposal = Proposal(
-        nr=nr,
-        bezeichnung=(form.get('bezeichnung') or '').strip(),
-        hersteller=(form.get('hersteller') or '').strip(),
-        modell=(form.get('modell') or '').strip(),
-        kategorie=form.get('kategorie') or '—',
-        anlass=form.get('anlass') or '—',
-        sachverhalt=form.get('sachverhalt') or '',
-        risiken=form.get('risiken') or '',
-        kosten=float(form.get('kosten') or 0),
-        beschaffungsart=form.get('beschaffungsart') or '',
-        foerderung=form.get('foerderung') or 'keine',
-        prioritaet=form.get('prioritaet') or '—',
-        ablauf=json.dumps(ablauf),
-        einreicher_name=(form.get('einreicher_name') or '').strip(),
-        einreicher_email=einreicher_email,
-        einreicher_tel=(form.get('einreicher_tel') or '').strip(),
-        abteilung=abteilung,
-    )
-    db.session.add(proposal)
-    db.session.flush()
+    kosten, _kerr = _parse_amount(form.get('kosten'))
+    if _kerr:
+        return jsonify({'error': f'Kosten: {_kerr}'}), 400
+    if isinstance(ablauf, list):
+        ablauf = [s for s in ablauf if s in _ABLAUF_VALUES]
+    else:
+        ablauf = []
+
+    # _next_nr ist zwischen parallelen Anfragen racebar – bei einer
+    # Nummern-Kollision (Unique-Constraint) mit frischer Nummer neu versuchen.
+    proposal = None
+    for _attempt in range(3):
+        nr = _next_nr()
+        proposal = Proposal(
+            nr=nr,
+            bezeichnung=(form.get('bezeichnung') or '').strip(),
+            hersteller=(form.get('hersteller') or '').strip(),
+            modell=(form.get('modell') or '').strip(),
+            kategorie=_filter_multi(form.get('kategorie'), _KATEGORIE_VALUES),
+            anlass=_filter_multi(form.get('anlass'), _ANLASS_VALUES),
+            sachverhalt=form.get('sachverhalt') or '',
+            risiken=form.get('risiken') or '',
+            kosten=kosten,
+            beschaffungsart=form.get('beschaffungsart') or '',
+            foerderung=form.get('foerderung') or 'keine',
+            prioritaet=(form.get('prioritaet') if form.get('prioritaet') in _PRIO_VALUES else '—'),
+            ablauf=json.dumps(ablauf),
+            einreicher_name=(form.get('einreicher_name') or '').strip(),
+            einreicher_email=einreicher_email,
+            einreicher_tel=(form.get('einreicher_tel') or '').strip(),
+            abteilung=abteilung,
+        )
+        db.session.add(proposal)
+        try:
+            db.session.flush()
+            break
+        except IntegrityError:
+            db.session.rollback()
+            proposal = None
+    if proposal is None:
+        return jsonify({'error': 'Vorgangsnummer konnte nicht vergeben werden – bitte erneut versuchen'}), 503
 
     upload_folder = current_app.config['UPLOAD_FOLDER']
     for f in files:
@@ -277,10 +329,9 @@ def update_proposal(nr):
         'ablauf': proposal.ablauf, 'notizen': proposal.notizen,
     }
     if 'kosten' in data:
-        try:
-            proposal.kosten = float(data['kosten'])
-        except (ValueError, TypeError):
-            pass
+        val, err = _parse_amount(data['kosten'])
+        if err is None:                              # inf/nan/negativ still ignorieren
+            proposal.kosten = val
     if 'hersteller' in data:
         proposal.hersteller = (data['hersteller'] or '').strip()
     if 'modell' in data:
@@ -290,21 +341,24 @@ def update_proposal(nr):
     if 'ablauf' in data:
         ablauf = data['ablauf']
         if isinstance(ablauf, list):
-            proposal.ablauf = json.dumps(ablauf)
+            proposal.ablauf = json.dumps([s for s in ablauf if s in _ABLAUF_VALUES])
     if 'notizen' in data:
         proposal.notizen = data['notizen'] or ''
     if 'prioritaet' in data:
-        proposal.prioritaet = (data['prioritaet'] or '').strip()
+        _p = (data['prioritaet'] or '').strip()
+        if _p in _PRIO_VALUES or _p in ('', '—'):    # nur bekannte Werte (Stored-XSS-Schutz)
+            proposal.prioritaet = _p or '—'
     if 'menge' in data:
         try:
-            proposal.menge = int(data['menge'])
+            m = int(data['menge'])
+            if 1 <= m <= 1_000_000:
+                proposal.menge = m
         except (ValueError, TypeError):
             pass
     if 'stueckpreis_geschaetzt' in data:
-        try:
-            proposal.stueckpreis_geschaetzt = float(data['stueckpreis_geschaetzt'])
-        except (ValueError, TypeError):
-            pass
+        val, err = _parse_amount(data['stueckpreis_geschaetzt'])
+        if err is None:
+            proposal.stueckpreis_geschaetzt = val
     # Geplanter Beschaffungszeitpunkt – nur Beschaffer/Admin dürfen ihn setzen
     if 'geplanter_zeitpunkt' in data and current_user.role in ('beschaffer', 'admin'):
         proposal.geplanter_zeitpunkt = (data['geplanter_zeitpunkt'] or '').strip()
@@ -390,10 +444,19 @@ def reopen_proposal(nr):
 
 # ── ALTERNATIVES ───────────────────────────────────────────────────────────────
 
+def _viewer_forbidden(proposal):
+    """Betrachter dürfen nur Daten GENEHMIGTER Vorschläge einsehen
+    (gleiche Regel wie beim Datei-Zugriff in get_upload)."""
+    return (current_user.role not in ('beschaffer', 'admin')
+            and proposal.status != 'approved')
+
+
 @api_bp.route('/proposals/<path:nr>/alternatives', methods=['GET'])
 @login_required
 def list_alternatives(nr):
     proposal = Proposal.query.filter_by(nr=nr).first_or_404()
+    if _viewer_forbidden(proposal):
+        abort(403)
     return jsonify([a.to_dict() for a in proposal.alternatives])
 
 
@@ -435,6 +498,8 @@ def delete_alternative(nr, alt_id):
 @login_required
 def list_quotes(nr):
     proposal = Proposal.query.filter_by(nr=nr).first_or_404()
+    if _viewer_forbidden(proposal):
+        abort(403)
     return jsonify([q.to_dict() for q in proposal.quotes])
 
 
@@ -551,6 +616,9 @@ def view_quote_email(quote_id):
     quote = db.session.get(Quote, quote_id)
     if not quote or not quote.eml_path:
         abort(404)
+    proposal = Proposal.query.filter_by(nr=quote.proposal_nr).first()
+    if proposal and _viewer_forbidden(proposal):
+        abort(403)
     path = os.path.join(current_app.config['UPLOAD_FOLDER'], quote.eml_path)
     if not os.path.exists(path):
         abort(404)
@@ -572,6 +640,9 @@ def download_quote_email(quote_id):
     quote = db.session.get(Quote, quote_id)
     if not quote or not quote.eml_path:
         abort(404)
+    proposal = Proposal.query.filter_by(nr=quote.proposal_nr).first()
+    if proposal and _viewer_forbidden(proposal):
+        abort(403)
     return send_from_directory(
         current_app.config['UPLOAD_FOLDER'], quote.eml_path,
         as_attachment=True, download_name='angebot.eml',
@@ -693,8 +764,8 @@ def create_user():
     data = request.get_json() or {}
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
-    if not username or len(password) < 6:
-        return jsonify({'error': 'Benutzername und Passwort (min. 6 Zeichen) erforderlich'}), 400
+    if not username or len(password) < MIN_PASSWORD_LEN:
+        return jsonify({'error': f'Benutzername und Passwort (min. {MIN_PASSWORD_LEN} Zeichen) erforderlich'}), 400
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'Benutzername bereits vergeben'}), 400
     role = (data.get('role') or 'betrachter').strip()
@@ -748,8 +819,8 @@ def update_user(uid):
             return jsonify({'error': 'Benutzername bereits vergeben'}), 400
         user.username = new_username
     if data.get('password'):
-        if len(data['password']) < 6:
-            return jsonify({'error': 'Passwort muss mindestens 6 Zeichen haben'}), 400
+        if len(data['password']) < MIN_PASSWORD_LEN:
+            return jsonify({'error': f'Passwort muss mindestens {MIN_PASSWORD_LEN} Zeichen haben'}), 400
         user.set_password(data['password'])
         _pw_changed = True
     if 'role' in data:
