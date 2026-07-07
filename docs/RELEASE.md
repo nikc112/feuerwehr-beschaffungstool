@@ -46,6 +46,9 @@ Grenzen (gewollt, best effort):
 
 - Ohne Internetzugang des Servers gibt es **keinen** Hinweis (und keinen Fehler).
 - Im Dev-Modus (Version `dev`) oder vor dem ersten Tag findet kein Vergleich statt.
+- **Solange das GitHub-Repo privat ist**, antwortet die Tags-API mit 404 → der
+  Hinweis erscheint nie. Die Versionsanzeige selbst funktioniert unabhängig davon.
+  (Abhilfe bei Bedarf: Repo öffentlich stellen oder Token-Support nachrüsten.)
 
 ## Server auf eine feste Version pinnen (optional)
 
