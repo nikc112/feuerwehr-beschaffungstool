@@ -200,7 +200,7 @@ tr:last-child td{border-bottom:none;}
   .card-table tr.ek-detail-row td{display:block;padding:0 !important;}
   #eingangskorb-table td[data-label=""],#ek-rejected-table td[data-label=""]{flex-wrap:wrap;white-space:normal;justify-content:flex-start;gap:8px;}
   /* In der Karten-Ansicht dürfen lange Texte wieder umbrechen */
-  #list-table th,#list-table td{white-space:normal;word-break:break-word;}
+  #list-table th,#list-table td,#historie-table th,#historie-table td{white-space:normal;word-break:break-word;}
   #eingangskorb-table .btn-success,#eingangskorb-table .btn-danger,#ek-rejected-table .btn-secondary,#ek-rejected-table .btn-danger{flex:1;justify-content:center;}
 }
 @media print{
@@ -524,7 +524,7 @@ tr:last-child td{border-bottom:none;}
   <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Abgeschlossene Beschaffungen (im Ablauf als „Beschafft" gekennzeichnet).</div>
   <div class="summary-bar" id="historie-summary"></div>
   <div class="table-wrap">
-    <table id="historie-table">
+    <table id="historie-table" class="card-table">
       <thead><tr>
         <th>Nr.</th>
         <th>Bezeichnung</th>
